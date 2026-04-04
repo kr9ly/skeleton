@@ -33,6 +33,8 @@ func ScanDir(dir string, opts Options) (*skeleton.Dir, error) {
 			ext = extractor.NewTypeScript()
 		case lang.Python:
 			ext = extractor.NewPython()
+		case lang.Go:
+			ext = extractor.NewGo()
 		default:
 			return
 		}
@@ -99,7 +101,7 @@ func walkDir(base, dir string, opts Options, fn func(path string, src []byte)) e
 }
 
 func shouldSkipDir(name string) bool {
-	return name == "node_modules" || name == ".git" || name == "dist" || name == "build" || strings.HasPrefix(name, ".")
+	return name == "node_modules" || name == ".git" || name == "dist" || name == "build" || name == "vendor" || strings.HasPrefix(name, ".")
 }
 
 func isTestFile(name string) bool {
@@ -113,7 +115,8 @@ func isTestFile(name string) bool {
 		strings.HasSuffix(name, ".spec.jsx") ||
 		strings.HasPrefix(name, "test_") ||
 		strings.HasSuffix(name, "_test.py") ||
-		name == "conftest.py"
+		name == "conftest.py" ||
+		strings.HasSuffix(name, "_test.go")
 }
 
 func buildDeps(baseDir string, files []skeleton.File, aliases *tsconfig.PathAliases) []skeleton.Dep {

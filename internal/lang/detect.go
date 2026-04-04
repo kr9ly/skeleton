@@ -8,6 +8,7 @@ const (
 	Unknown Language = iota
 	TypeScript
 	Python
+	Go
 	Markdown
 )
 
@@ -19,6 +20,8 @@ func Detect(path string) Language {
 		return TypeScript // same grammar
 	case ".py":
 		return Python
+	case ".go":
+		return Go
 	case ".md":
 		return Markdown
 	default:

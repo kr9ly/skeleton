@@ -9,12 +9,21 @@ import (
 	"github.com/kr9ly/skeleton/internal/edit"
 	"github.com/kr9ly/skeleton/internal/extractor"
 	"github.com/kr9ly/skeleton/internal/lang"
+	"github.com/kr9ly/skeleton/internal/mcp"
 	"github.com/kr9ly/skeleton/internal/render"
 	"github.com/kr9ly/skeleton/internal/scanner"
 	"github.com/kr9ly/skeleton/internal/selector"
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		if err := mcp.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "mcp error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if len(os.Args) > 1 && os.Args[1] == "edit" {
 		runEdit(os.Args[2:])
 		return
@@ -229,6 +238,8 @@ func newExtractor(language lang.Language) extractor.Extractor {
 		return extractor.NewTypeScript()
 	case lang.Python:
 		return extractor.NewPython()
+	case lang.Go:
+		return extractor.NewGo()
 	default:
 		return nil
 	}

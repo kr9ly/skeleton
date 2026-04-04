@@ -86,6 +86,12 @@ func iterateChildren(parent *sitter.Node, src []byte, fn func(*sitter.Node)) {
 			if def := child.ChildByFieldName("definition"); def != nil {
 				fn(def)
 			}
+		case "type_declaration", "const_declaration", "var_declaration":
+			// Go: グループ宣言の中身を個別に扱う
+			for j := 0; j < int(child.NamedChildCount()); j++ {
+				fn(child.NamedChild(j))
+			}
+			fn(child)
 		default:
 			fn(child)
 		}
@@ -95,10 +101,11 @@ func iterateChildren(parent *sitter.Node, src []byte, fn func(*sitter.Node)) {
 func matchesKind(kind string, node *sitter.Node, src []byte) bool {
 	nodeType := node.Type()
 	switch kind {
-	case "function":
+	case "function", "func":
 		return nodeType == "function_declaration" ||
 			nodeType == "function_definition" ||
-			nodeType == "arrow_function"
+			nodeType == "arrow_function" ||
+			nodeType == "method_declaration" // Go
 	case "class":
 		return nodeType == "class_declaration" ||
 			nodeType == "class_definition"
@@ -106,18 +113,28 @@ func matchesKind(kind string, node *sitter.Node, src []byte) bool {
 		return nodeType == "interface_declaration"
 	case "type":
 		return nodeType == "type_alias_declaration" ||
-			nodeType == "type_alias_statement"
+			nodeType == "type_alias_statement" ||
+			nodeType == "type_spec" || // Go
+			nodeType == "type_alias" // Go type alias
 	case "import":
 		return nodeType == "import_statement" ||
-			nodeType == "import_from_statement"
+			nodeType == "import_from_statement" ||
+			nodeType == "import_declaration" // Go
 	case "export":
 		return nodeType == "export_statement"
 	case "method":
 		return nodeType == "method_definition" ||
-			nodeType == "method_signature"
+			nodeType == "method_signature" ||
+			nodeType == "method_declaration" || // Go
+			nodeType == "method_elem" // Go interface
 	case "field":
 		return nodeType == "public_field_definition" ||
-			nodeType == "property_signature"
+			nodeType == "property_signature" ||
+			nodeType == "field_declaration" // Go
+	case "const":
+		return nodeType == "const_declaration" // Go
+	case "var":
+		return nodeType == "var_declaration" // Go
 	default:
 		return false
 	}
@@ -135,6 +152,37 @@ func nodeName(node *sitter.Node, src []byte) string {
 		}
 		if s := node.ChildByFieldName("module_name"); s != nil {
 			return s.Content(src)
+		}
+	}
+	// Go: type_alias, const_spec, var_spec は name フィールドを持たない
+	switch node.Type() {
+	case "type_alias", "type_spec":
+		for i := 0; i < int(node.NamedChildCount()); i++ {
+			child := node.NamedChild(i)
+			if child.Type() == "type_identifier" {
+				return child.Content(src)
+			}
+		}
+	case "const_spec", "var_spec":
+		for i := 0; i < int(node.NamedChildCount()); i++ {
+			child := node.NamedChild(i)
+			if child.Type() == "identifier" {
+				return child.Content(src)
+			}
+		}
+	case "field_declaration":
+		for i := 0; i < int(node.NamedChildCount()); i++ {
+			child := node.NamedChild(i)
+			if child.Type() == "field_identifier" {
+				return child.Content(src)
+			}
+		}
+	case "method_elem":
+		for i := 0; i < int(node.NamedChildCount()); i++ {
+			child := node.NamedChild(i)
+			if child.Type() == "field_identifier" {
+				return child.Content(src)
+			}
 		}
 	}
 	return ""
@@ -159,7 +207,7 @@ func FindBody(node *sitter.Node) *sitter.Node {
 	for i := 0; i < int(node.NamedChildCount()); i++ {
 		child := node.NamedChild(i)
 		t := child.Type()
-		if strings.HasSuffix(t, "_body") || t == "statement_block" || t == "block" || t == "object_type" {
+		if strings.HasSuffix(t, "_body") || t == "statement_block" || t == "block" || t == "object_type" || t == "field_declaration_list" || t == "interface_type" {
 			return child
 		}
 	}
