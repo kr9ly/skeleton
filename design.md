@@ -175,6 +175,98 @@ skeleton と codegraph は補完的な関係。
 skeleton で骨格を掴み、codegraph で俯瞰する。
 Read は skeleton で当たりをつけた後の精読用。
 
+## edit サブコマンド — AST ベースのコード編集
+
+skeleton が「読み」なら、edit は「書き」。
+文字列マッチではなく AST ノードで位置を指定し、コードを挿入・変形する。
+
+### 動機
+
+LLM が Edit ツールでコードを編集するとき:
+1. 挿入位置の指定が脆い（周辺コードの正確な再現が必要）
+2. 変形の意図が old_string/new_string の差分に埋もれる
+
+AST ベースなら「どこに」「何を」が構造的に分離される。
+
+### 操作
+
+#### insert — コードブロックの挿入
+
+位置指定は3種類:
+- `--before` — ノードの直前に挿入
+- `--after` — ノードの直後に挿入
+- `--into` — ノードの body 末尾に挿入（`--into-head` で先頭）
+
+```bash
+skeleton edit insert --into "class:UserService" src/auth.ts <<'EOF'
+async delete(id: string): Promise<void> {
+  await this.db.delete(id);
+}
+EOF
+
+skeleton edit insert --after "last:import" src/auth.ts <<'EOF'
+import { Logger } from "./logger";
+EOF
+
+skeleton edit insert --before "function:getUser" src/auth.ts <<'EOF'
+type GetUserOptions = { includeDeleted?: boolean };
+EOF
+```
+
+インデント調整はフォーマッター（prettier, gofmt 等）に委ねる。
+
+#### rename — 識別子のリネーム（定義 + 参照）
+
+```bash
+skeleton edit rename --from "getUser" --to "findUser" src/auth.ts
+skeleton edit rename --from "getUser" --to "findUser" --scope src/
+```
+
+#### modify — ノードの変形
+
+```bash
+skeleton edit modify "function:getUser" --add-param "options?: GetUserOptions" src/auth.ts
+skeleton edit modify "interface:JwtPayload" --add-field "exp: number" src/auth.ts
+```
+
+#### remove — ノードの削除
+
+```bash
+skeleton edit remove "import:./unused" src/auth.ts
+skeleton edit remove "function:deprecatedHelper" src/auth.ts
+```
+
+### ノードセレクタ
+
+```
+kind:name          — 名前で指定       function:getUser, class:AuthService
+first:kind         — 最初のノード      first:import
+last:kind          — 最後のノード      last:import
+nth:kind:N         — N番目            nth:import:3
+```
+
+kind: function, class, interface, type, import, export, method, field
+
+ネスト: `class:UserService > method:findById`
+
+### 出力
+
+デフォルトはファイルを直接書き換え。
+`--dry-run` で stdout に出力、`--diff` で unified diff。
+
+### ワークフロー
+
+1. `skeleton src/auth.ts` で構造を把握
+2. 出力からセレクタを構成（`function:verifyToken`, `class:AuthService`）
+3. `skeleton edit insert/modify/remove` で編集
+
+skeleton の出力がそのままセレクタのボキャブラリになる。
+
+### 未解決の問い
+
+- modify のパラメータ追加で、呼び出し側も更新すべきか？
+- rename のスコープ指定をどこまで賢くするか？
+
 ## やらないこと
 
 - グラフメトリクス計算（PageRank等は codegraph の責務）
@@ -182,3 +274,5 @@ Read は skeleton で当たりをつけた後の精読用。
 - インデックスの永続化
 - LLMドキュメント生成
 - セマンティック検索
+- フォーマット（prettier / black の責務）
+- リンティング・型チェック
