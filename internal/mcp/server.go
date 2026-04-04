@@ -134,7 +134,7 @@ func getTools() []tool {
 	return []tool{
 		{
 			Name:        "skeleton",
-			Description: "ファイルまたはディレクトリのコード骨格（import, export, シグネチャ）を返す。Read の前段として使い、構造を素早く把握してトークンを節約する。",
+			Description: "ファイルまたはディレクトリのコード骨格（import, export, シグネチャ）を返す。Read の前段として使い、構造を素早く把握してトークンを節約する。未知のファイルを読む前・ディレクトリの関数/型を把握したいときにまず呼ぶ。Explore エージェントより軽量。",
 			InputSchema: inputSchema{
 				Type: "object",
 				Properties: map[string]property{
@@ -382,6 +382,8 @@ func newExtractor(language lang.Language) extractor.Extractor {
 		return extractor.NewPython()
 	case lang.Go:
 		return extractor.NewGo()
+	case lang.Markdown:
+		return extractor.NewMarkdown()
 	default:
 		return nil
 	}

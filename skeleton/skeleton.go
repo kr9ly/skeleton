@@ -63,6 +63,7 @@ const (
 	ExportInterface
 	ExportType
 	ExportVariable
+	ExportSection
 )
 
 func (k ExportKind) String() string {
@@ -77,6 +78,8 @@ func (k ExportKind) String() string {
 		return "type"
 	case ExportVariable:
 		return "const"
+	case ExportSection:
+		return "section"
 	default:
 		return "?"
 	}

@@ -240,6 +240,8 @@ func newExtractor(language lang.Language) extractor.Extractor {
 		return extractor.NewPython()
 	case lang.Go:
 		return extractor.NewGo()
+	case lang.Markdown:
+		return extractor.NewMarkdown()
 	default:
 		return nil
 	}

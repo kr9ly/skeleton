@@ -35,6 +35,8 @@ func ScanDir(dir string, opts Options) (*skeleton.Dir, error) {
 			ext = extractor.NewPython()
 		case lang.Go:
 			ext = extractor.NewGo()
+		case lang.Markdown:
+			ext = extractor.NewMarkdown()
 		default:
 			return
 		}

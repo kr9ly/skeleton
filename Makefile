@@ -7,7 +7,8 @@ build:
 
 install: build
 	mkdir -p $(PREFIX)
-	cp bin/skeleton $(PREFIX)/skeleton
+	cp bin/skeleton $(PREFIX)/skeleton.new
+	mv $(PREFIX)/skeleton.new $(PREFIX)/skeleton
 
 clean:
 	rm -rf bin/
