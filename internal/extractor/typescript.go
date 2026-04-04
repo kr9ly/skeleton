@@ -101,19 +101,29 @@ func extractDeclaration(decl *sitter.Node, src []byte, isDefault bool) []skeleto
 	case "class_declaration":
 		sig := classSignature(decl, src)
 		name := fieldContent(decl, "name", src)
+		members := extractClassMembers(decl, src)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportClass,
 			Name:      name,
 			Signature: prefix + sig,
+			Members:   members,
 		}}
 
 	case "interface_declaration":
 		name := fieldContent(decl, "name", src)
-		sig := typeBodySignature(decl, "interface", name, src)
+		members := extractInterfaceMembers(decl, src)
+		// メンバーリストがあればヘッダーだけ、なければ全文
+		var sig string
+		if len(members) > 0 {
+			sig = interfaceHeader(decl, src)
+		} else {
+			sig = typeBodySignature(decl, "interface", name, src)
+		}
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportInterface,
 			Name:      name,
 			Signature: prefix + sig,
+			Members:   members,
 		}}
 
 	case "type_alias_declaration":
@@ -199,6 +209,14 @@ func signatureWithoutBody(node *sitter.Node, src []byte) string {
 	return sig
 }
 
+func interfaceHeader(node *sitter.Node, src []byte) string {
+	body := node.ChildByFieldName("body")
+	if body == nil {
+		return strings.TrimSpace(content(node, src))
+	}
+	return strings.TrimSpace(string(src[node.StartByte():body.StartByte()]))
+}
+
 func classSignature(node *sitter.Node, src []byte) string {
 	body := node.ChildByFieldName("body")
 	if body == nil {
@@ -265,6 +283,72 @@ func extractReExport(node *sitter.Node, src []byte) []skeleton.Export {
 		Name:      "",
 		Signature: strings.TrimPrefix(text, "export "),
 	}}
+}
+
+func extractClassMembers(node *sitter.Node, src []byte) []skeleton.Member {
+	body := node.ChildByFieldName("body")
+	if body == nil {
+		return nil
+	}
+
+	var members []skeleton.Member
+	for i := 0; i < int(body.NamedChildCount()); i++ {
+		child := body.NamedChild(i)
+		switch child.Type() {
+		case "method_definition":
+			name := fieldContent(child, "name", src)
+			kind := skeleton.MemberMethod
+			// getter/setter の判定
+			for j := 0; j < int(child.ChildCount()); j++ {
+				c := child.Child(j)
+				text := content(c, src)
+				if text == "get" && c.Type() != "identifier" {
+					kind = skeleton.MemberGetter
+				} else if text == "set" && c.Type() != "identifier" {
+					kind = skeleton.MemberSetter
+				}
+			}
+			sig := signatureWithoutBody(child, src)
+			members = append(members, skeleton.Member{Kind: kind, Name: name, Signature: sig})
+
+		case "public_field_definition":
+			name := fieldContent(child, "name", src)
+			typeNode := child.ChildByFieldName("type")
+			sig := name
+			if typeNode != nil {
+				sig = name + content(typeNode, src)
+			}
+			members = append(members, skeleton.Member{Kind: skeleton.MemberField, Name: name, Signature: sig})
+		}
+	}
+	return members
+}
+
+func extractInterfaceMembers(node *sitter.Node, src []byte) []skeleton.Member {
+	body := node.ChildByFieldName("body")
+	if body == nil {
+		return nil
+	}
+
+	var members []skeleton.Member
+	for i := 0; i < int(body.NamedChildCount()); i++ {
+		child := body.NamedChild(i)
+		switch child.Type() {
+		case "method_signature":
+			name := fieldContent(child, "name", src)
+			sig := strings.TrimSpace(content(child, src))
+			// 末尾のセミコロンを除去
+			sig = strings.TrimRight(sig, ";")
+			members = append(members, skeleton.Member{Kind: skeleton.MemberMethod, Name: name, Signature: sig})
+
+		case "property_signature":
+			name := fieldContent(child, "name", src)
+			sig := strings.TrimSpace(content(child, src))
+			sig = strings.TrimRight(sig, ";")
+			members = append(members, skeleton.Member{Kind: skeleton.MemberField, Name: name, Signature: sig})
+		}
+	}
+	return members
 }
 
 func content(node *sitter.Node, src []byte) string {

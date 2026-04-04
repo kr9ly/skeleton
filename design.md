@@ -215,13 +215,6 @@ EOF
 
 インデント調整はフォーマッター（prettier, gofmt 等）に委ねる。
 
-#### rename — 識別子のリネーム（定義 + 参照）
-
-```bash
-skeleton edit rename --from "getUser" --to "findUser" src/auth.ts
-skeleton edit rename --from "getUser" --to "findUser" --scope src/
-```
-
 #### modify — ノードの変形
 
 ```bash
@@ -265,7 +258,6 @@ skeleton の出力がそのままセレクタのボキャブラリになる。
 ### 未解決の問い
 
 - modify のパラメータ追加で、呼び出し側も更新すべきか？
-- rename のスコープ指定をどこまで賢くするか？
 
 ## やらないこと
 

@@ -88,5 +88,12 @@ func writeFileBody(b *strings.Builder, f *skeleton.File) {
 		b.WriteString("export ")
 		b.WriteString(exp.Signature)
 		b.WriteString("\n")
+		for _, m := range exp.Members {
+			b.WriteString("  ")
+			b.WriteString(m.Kind.String())
+			b.WriteString(" ")
+			b.WriteString(m.Signature)
+			b.WriteString("\n")
+		}
 	}
 }

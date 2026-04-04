@@ -21,7 +21,38 @@ type Dep struct {
 type Export struct {
 	Kind      ExportKind
 	Name      string
-	Signature string // シグネチャ全体（"function verifyToken(token: string): Promise<JwtPayload>" 等）
+	Signature string   // シグネチャ全体（"function verifyToken(token: string): Promise<JwtPayload>" 等）
+	Members   []Member // クラス・インターフェースのメンバー（詳細モード用）
+}
+
+type Member struct {
+	Kind      MemberKind
+	Name      string
+	Signature string
+}
+
+type MemberKind int
+
+const (
+	MemberMethod MemberKind = iota
+	MemberField
+	MemberGetter
+	MemberSetter
+)
+
+func (k MemberKind) String() string {
+	switch k {
+	case MemberMethod:
+		return "method"
+	case MemberField:
+		return "field"
+	case MemberGetter:
+		return "getter"
+	case MemberSetter:
+		return "setter"
+	default:
+		return "?"
+	}
 }
 
 type ExportKind int
