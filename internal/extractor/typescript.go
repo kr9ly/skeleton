@@ -163,7 +163,7 @@ func extractLexicalDeclaration(decl *sitter.Node, src []byte, prefix string) []s
 		case valueNode != nil && valueNode.Type() == "arrow_function":
 			sig = arrowFunctionSignature(keyword, name, typeNode, valueNode, src)
 		case typeNode != nil:
-			sig = keyword + " " + name + ": " + content(typeNode, src)
+			sig = keyword + " " + name + content(typeNode, src)
 		default:
 			sig = keyword + " " + name
 		}
@@ -179,7 +179,7 @@ func extractLexicalDeclaration(decl *sitter.Node, src []byte, prefix string) []s
 
 func arrowFunctionSignature(keyword, name string, typeNode, valueNode *sitter.Node, src []byte) string {
 	if typeNode != nil {
-		return keyword + " " + name + ": " + content(typeNode, src)
+		return keyword + " " + name + content(typeNode, src)
 	}
 	// type annotation がない場合、arrow function のパラメータと戻り値型を抽出
 	sig := signatureWithoutBody(valueNode, src)
