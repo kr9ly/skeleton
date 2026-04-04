@@ -66,11 +66,8 @@ func runFile(path string) {
 		os.Exit(1)
 	}
 
-	var ext extractor.Extractor
-	switch language {
-	case lang.TypeScript:
-		ext = extractor.NewTypeScript()
-	default:
+	ext := newExtractor(language)
+	if ext == nil {
 		fmt.Fprintf(os.Stderr, "unsupported language: %s\n", path)
 		os.Exit(1)
 	}
@@ -83,4 +80,15 @@ func runFile(path string) {
 	file.Path = path
 
 	fmt.Print(render.Text(file))
+}
+
+func newExtractor(language lang.Language) extractor.Extractor {
+	switch language {
+	case lang.TypeScript:
+		return extractor.NewTypeScript()
+	case lang.Python:
+		return extractor.NewPython()
+	default:
+		return nil
+	}
 }

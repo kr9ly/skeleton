@@ -7,6 +7,7 @@ type Language int
 const (
 	Unknown Language = iota
 	TypeScript
+	Python
 	Markdown
 )
 
@@ -16,6 +17,8 @@ func Detect(path string) Language {
 		return TypeScript
 	case ".js", ".jsx", ".mjs", ".cjs":
 		return TypeScript // same grammar
+	case ".py":
+		return Python
 	case ".md":
 		return Markdown
 	default:

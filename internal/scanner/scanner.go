@@ -31,6 +31,8 @@ func ScanDir(dir string, opts Options) (*skeleton.Dir, error) {
 		switch language {
 		case lang.TypeScript:
 			ext = extractor.NewTypeScript()
+		case lang.Python:
+			ext = extractor.NewPython()
 		default:
 			return
 		}
@@ -108,7 +110,10 @@ func isTestFile(name string) bool {
 		strings.HasSuffix(name, ".test.js") ||
 		strings.HasSuffix(name, ".test.jsx") ||
 		strings.HasSuffix(name, ".spec.js") ||
-		strings.HasSuffix(name, ".spec.jsx")
+		strings.HasSuffix(name, ".spec.jsx") ||
+		strings.HasPrefix(name, "test_") ||
+		strings.HasSuffix(name, "_test.py") ||
+		name == "conftest.py"
 }
 
 func buildDeps(baseDir string, files []skeleton.File, aliases *tsconfig.PathAliases) []skeleton.Dep {
