@@ -8,6 +8,7 @@ import (
 
 	"github.com/kr9ly/skeleton/internal/extractor"
 	"github.com/kr9ly/skeleton/internal/lang"
+	"github.com/kr9ly/skeleton/internal/tsconfig"
 	"github.com/kr9ly/skeleton/skeleton"
 )
 
@@ -47,7 +48,8 @@ func ScanDir(dir string, opts Options) (*skeleton.Dir, error) {
 		return nil, err
 	}
 
-	deps := buildDeps(dir, files)
+	aliases := tsconfig.FindAndLoad(dir)
+	deps := buildDeps(dir, files, aliases)
 
 	return &skeleton.Dir{
 		Path:  dir,
@@ -109,15 +111,21 @@ func isTestFile(name string) bool {
 		strings.HasSuffix(name, ".spec.jsx")
 }
 
-func buildDeps(baseDir string, files []skeleton.File) []skeleton.Dep {
+func buildDeps(baseDir string, files []skeleton.File, aliases *tsconfig.PathAliases) []skeleton.Dep {
+	absBaseDir, _ := filepath.Abs(baseDir)
+
 	// ディレクトリ内のファイルパスを集める（拡張子なし → 相対パス）
 	fileSet := make(map[string]string) // 拡張子なしパス → 相対パス
+	// 絶対パス版（alias 解決用）
+	absFileSet := make(map[string]string) // 絶対パス（拡張子なし）→ 相対パス
 	for _, f := range files {
 		noExt := strings.TrimSuffix(f.Path, filepath.Ext(f.Path))
 		fileSet[noExt] = f.Path
+		absFileSet[filepath.Join(absBaseDir, noExt)] = f.Path
 		// index ファイルはディレクトリ名でも参照可能
 		if filepath.Base(noExt) == "index" {
 			fileSet[filepath.Dir(noExt)] = f.Path
+			absFileSet[filepath.Join(absBaseDir, filepath.Dir(noExt))] = f.Path
 		}
 	}
 
@@ -127,14 +135,17 @@ func buildDeps(baseDir string, files []skeleton.File) []skeleton.Dep {
 	for _, f := range files {
 		fileDir := filepath.Dir(f.Path)
 		for _, imp := range f.Imports {
-			if !strings.HasPrefix(imp, ".") {
-				continue // 外部パッケージは無視
+			var target string
+			if strings.HasPrefix(imp, ".") {
+				// 相対 import
+				resolved := filepath.Clean(filepath.Join(fileDir, imp))
+				target = fileSet[resolved]
+			} else if abs := aliases.Resolve(imp); abs != "" {
+				// path alias import
+				target = absFileSet[abs]
 			}
-			resolved := filepath.Clean(filepath.Join(fileDir, imp))
-			if target, ok := fileSet[resolved]; ok {
-				if target != f.Path { // 自己参照は除外
-					usersOf[target] = append(usersOf[target], f.Path)
-				}
+			if target != "" && target != f.Path {
+				usersOf[target] = append(usersOf[target], f.Path)
 			}
 		}
 	}
