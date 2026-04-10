@@ -10,6 +10,7 @@ const (
 	Python
 	Go
 	Markdown
+	Kotlin
 )
 
 func Detect(path string) Language {
@@ -24,6 +25,8 @@ func Detect(path string) Language {
 		return Go
 	case ".md":
 		return Markdown
+	case ".kt", ".kts":
+		return Kotlin
 	default:
 		return Unknown
 	}

@@ -384,6 +384,8 @@ func newExtractor(language lang.Language) extractor.Extractor {
 		return extractor.NewGo()
 	case lang.Markdown:
 		return extractor.NewMarkdown()
+	case lang.Kotlin:
+		return extractor.NewKotlin()
 	default:
 		return nil
 	}
