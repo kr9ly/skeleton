@@ -15,6 +15,7 @@ import (
 type Options struct {
 	Depth  int
 	NoTest bool
+	Filter string // glob pattern to filter files (e.g. "*.kt")
 }
 
 func ScanDir(dir string, opts Options) (*skeleton.Dir, error) {
@@ -22,31 +23,26 @@ func ScanDir(dir string, opts Options) (*skeleton.Dir, error) {
 
 	var files []skeleton.File
 	err := walkDir(dir, dir, opts, func(path string, src []byte) {
+		rel, _ := filepath.Rel(dir, path)
+
 		language := lang.Detect(path)
 		if language == lang.Unknown {
+			files = append(files, skeleton.File{Path: rel})
 			return
 		}
 
-		var ext extractor.Extractor
-		switch language {
-		case lang.TypeScript:
-			ext = extractor.NewTypeScript()
-		case lang.Python:
-			ext = extractor.NewPython()
-		case lang.Go:
-			ext = extractor.NewGo()
-		case lang.Markdown:
-			ext = extractor.NewMarkdown()
-		default:
+		ext := newExtractor(language)
+		if ext == nil {
+			files = append(files, skeleton.File{Path: rel})
 			return
 		}
 
 		f, err := ext.Extract(src)
 		if err != nil {
+			files = append(files, skeleton.File{Path: rel})
 			return
 		}
 
-		rel, _ := filepath.Rel(dir, path)
 		f.Path = rel
 		files = append(files, *f)
 	})
@@ -74,7 +70,7 @@ func walkDir(base, dir string, opts Options, fn func(path string, src []byte)) e
 		return err
 	}
 
-	childOpts := Options{Depth: opts.Depth - 1, NoTest: opts.NoTest}
+	childOpts := Options{Depth: opts.Depth - 1, NoTest: opts.NoTest, Filter: opts.Filter}
 
 	for _, e := range entries {
 		path := filepath.Join(dir, e.Name())
@@ -86,11 +82,14 @@ func walkDir(base, dir string, opts Options, fn func(path string, src []byte)) e
 				return err
 			}
 		} else {
-			if lang.Detect(path) == lang.Unknown {
-				continue
-			}
 			if opts.NoTest && isTestFile(e.Name()) {
 				continue
+			}
+			if opts.Filter != "" {
+				matched, _ := filepath.Match(opts.Filter, e.Name())
+				if !matched {
+					continue
+				}
 			}
 			src, err := os.ReadFile(path)
 			if err != nil {
@@ -119,6 +118,23 @@ func isTestFile(name string) bool {
 		strings.HasSuffix(name, "_test.py") ||
 		name == "conftest.py" ||
 		strings.HasSuffix(name, "_test.go")
+}
+
+func newExtractor(language lang.Language) extractor.Extractor {
+	switch language {
+	case lang.TypeScript:
+		return extractor.NewTypeScript()
+	case lang.Python:
+		return extractor.NewPython()
+	case lang.Go:
+		return extractor.NewGo()
+	case lang.Markdown:
+		return extractor.NewMarkdown()
+	case lang.Kotlin:
+		return extractor.NewKotlin()
+	default:
+		return nil
+	}
 }
 
 func buildDeps(baseDir string, files []skeleton.File, aliases *tsconfig.PathAliases) []skeleton.Dep {

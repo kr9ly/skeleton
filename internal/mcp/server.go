@@ -152,6 +152,10 @@ func getTools() []tool {
 						Description: "テストファイルを除外する",
 						Default:     false,
 					},
+					"filter": {
+						Type:        "string",
+						Description: "ファイル名の glob パターンでフィルタする（例: \"*.kt\", \"*.ts\"）。ディレクトリモードのみ有効",
+					},
 				},
 				Required: []string{"path"},
 			},
@@ -246,6 +250,7 @@ func toolSkeleton(raw json.RawMessage) callResult {
 		Path   string `json:"path"`
 		Depth  int    `json:"depth"`
 		NoTest bool   `json:"no_test"`
+		Filter string `json:"filter"`
 	}
 	args.Depth = 1
 	if err := json.Unmarshal(raw, &args); err != nil {
@@ -258,7 +263,7 @@ func toolSkeleton(raw json.RawMessage) callResult {
 	}
 
 	if info.IsDir() {
-		opts := scanner.Options{Depth: args.Depth, NoTest: args.NoTest}
+		opts := scanner.Options{Depth: args.Depth, NoTest: args.NoTest, Filter: args.Filter}
 		dir, err := scanner.ScanDir(args.Path, opts)
 		if err != nil {
 			return errResult(err.Error())

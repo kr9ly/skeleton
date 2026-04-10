@@ -32,6 +32,7 @@ func main() {
 	fs := flag.NewFlagSet("skeleton", flag.ExitOnError)
 	depth := fs.Int("depth", 1, "directory traversal depth")
 	noTest := fs.Bool("no-test", false, "exclude test files")
+	filter := fs.String("filter", "", "glob pattern to filter files (e.g. \"*.kt\")")
 	fs.Parse(os.Args[1:])
 
 	if fs.NArg() < 1 {
@@ -49,7 +50,7 @@ func main() {
 	}
 
 	if info.IsDir() {
-		opts := scanner.Options{Depth: *depth, NoTest: *noTest}
+		opts := scanner.Options{Depth: *depth, NoTest: *noTest, Filter: *filter}
 		dir, err := scanner.ScanDir(path, opts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)

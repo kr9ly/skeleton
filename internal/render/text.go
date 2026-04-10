@@ -21,6 +21,8 @@ func Text(f *skeleton.File) string {
 	return b.String()
 }
 
+const detailThreshold = 50
+
 func TextDir(d *skeleton.Dir) string {
 	var b strings.Builder
 
@@ -28,9 +30,15 @@ func TextDir(d *skeleton.Dir) string {
 	b.WriteString(d.Path)
 	b.WriteString("/\n\n")
 
+	detail := len(d.Files) <= detailThreshold
+
 	for _, f := range d.Files {
 		b.WriteString(f.Path)
 		b.WriteString("\n")
+
+		if !detail {
+			continue
+		}
 
 		if len(f.Exports) > 0 {
 			b.WriteString("  exports: ")
@@ -63,11 +71,15 @@ func TextDir(d *skeleton.Dir) string {
 		}
 	}
 
-	if len(d.Deps) > 0 {
-		b.WriteString("\n## deps\n")
-		for _, dep := range d.Deps {
-			fmt.Fprintf(&b, "%s <- %s\n", dep.Source, strings.Join(dep.Users, ", "))
+	if detail {
+		if len(d.Deps) > 0 {
+			b.WriteString("\n## deps\n")
+			for _, dep := range d.Deps {
+				fmt.Fprintf(&b, "%s <- %s\n", dep.Source, strings.Join(dep.Users, ", "))
+			}
 		}
+	} else {
+		fmt.Fprintf(&b, "\n(%d files — exports omitted. Use filter or specify individual file paths for details.)\n", len(d.Files))
 	}
 
 	return b.String()
