@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/kr9ly/skeleton/internal/edit"
 	"github.com/kr9ly/skeleton/internal/extractor"
@@ -14,6 +15,28 @@ import (
 	"github.com/kr9ly/skeleton/internal/scanner"
 	"github.com/kr9ly/skeleton/internal/selector"
 )
+
+// flexInt は JSON の数値・文字列どちらからでもアンマーシャルできる int 型。
+// MCP クライアントによっては number フィールドを文字列で送ることがある。
+type flexInt int
+
+func (f *flexInt) UnmarshalJSON(data []byte) error {
+	var n int
+	if err := json.Unmarshal(data, &n); err == nil {
+		*f = flexInt(n)
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("cannot parse %q as integer", s)
+		}
+		*f = flexInt(n)
+		return nil
+	}
+	return fmt.Errorf("cannot unmarshal %s as integer", string(data))
+}
 
 type jsonRPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -247,10 +270,10 @@ func handleToolCall(req jsonRPCRequest) jsonRPCResponse {
 
 func toolSkeleton(raw json.RawMessage) callResult {
 	var args struct {
-		Path   string `json:"path"`
-		Depth  int    `json:"depth"`
-		NoTest bool   `json:"no_test"`
-		Filter string `json:"filter"`
+		Path   string  `json:"path"`
+		Depth  flexInt `json:"depth"`
+		NoTest bool    `json:"no_test"`
+		Filter string  `json:"filter"`
 	}
 	args.Depth = 1
 	if err := json.Unmarshal(raw, &args); err != nil {
@@ -263,7 +286,7 @@ func toolSkeleton(raw json.RawMessage) callResult {
 	}
 
 	if info.IsDir() {
-		opts := scanner.Options{Depth: args.Depth, NoTest: args.NoTest, Filter: args.Filter}
+		opts := scanner.Options{Depth: int(args.Depth), NoTest: args.NoTest, Filter: args.Filter}
 		dir, err := scanner.ScanDir(args.Path, opts)
 		if err != nil {
 			return errResult(err.Error())
