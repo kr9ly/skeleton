@@ -3,6 +3,7 @@ package edit
 import (
 	sitter "github.com/smacker/go-tree-sitter"
 	"github.com/smacker/go-tree-sitter/golang"
+	clang "github.com/smacker/go-tree-sitter/c"
 	"github.com/smacker/go-tree-sitter/kotlin"
 	"github.com/smacker/go-tree-sitter/python"
 	"github.com/smacker/go-tree-sitter/typescript/typescript"
@@ -22,4 +23,8 @@ func getLangGo() *sitter.Language {
 
 func getLangKotlin() *sitter.Language {
 	return kotlin.GetLanguage()
+}
+
+func getLangC() *sitter.Language {
+	return clang.GetLanguage()
 }

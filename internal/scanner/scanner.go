@@ -117,7 +117,8 @@ func isTestFile(name string) bool {
 		strings.HasPrefix(name, "test_") ||
 		strings.HasSuffix(name, "_test.py") ||
 		name == "conftest.py" ||
-		strings.HasSuffix(name, "_test.go")
+		strings.HasSuffix(name, "_test.go") ||
+		strings.HasSuffix(name, "_test.c")
 }
 
 func newExtractor(language lang.Language) extractor.Extractor {
@@ -132,6 +133,8 @@ func newExtractor(language lang.Language) extractor.Extractor {
 		return extractor.NewMarkdown()
 	case lang.Kotlin:
 		return extractor.NewKotlin()
+	case lang.C:
+		return extractor.NewC()
 	default:
 		return nil
 	}

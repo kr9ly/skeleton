@@ -22,6 +22,8 @@ func getLanguage(path string) *sitter.Language {
 		return getLangGo()
 	case lang.Kotlin:
 		return getLangKotlin()
+	case lang.C:
+		return getLangC()
 	default:
 		return nil
 	}

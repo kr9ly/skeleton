@@ -11,6 +11,7 @@ const (
 	Go
 	Markdown
 	Kotlin
+	C
 )
 
 func Detect(path string) Language {
@@ -27,6 +28,8 @@ func Detect(path string) Language {
 		return Markdown
 	case ".kt", ".kts":
 		return Kotlin
+	case ".c", ".h":
+		return C
 	default:
 		return Unknown
 	}
