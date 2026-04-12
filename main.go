@@ -249,6 +249,8 @@ func newExtractor(language lang.Language) extractor.Extractor {
 		return extractor.NewC()
 	case lang.CUDA:
 		return extractor.NewCUDA()
+	case lang.Zig:
+		return extractor.NewZig()
 	default:
 		return nil
 	}

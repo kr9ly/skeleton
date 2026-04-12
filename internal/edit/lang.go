@@ -7,6 +7,7 @@ import (
 	"github.com/smacker/go-tree-sitter/kotlin"
 	"github.com/smacker/go-tree-sitter/python"
 	"github.com/smacker/go-tree-sitter/typescript/typescript"
+	ziglang "github.com/kr9ly/skeleton/internal/treesitter/zig"
 )
 
 func getLangTS() *sitter.Language {
@@ -27,4 +28,8 @@ func getLangKotlin() *sitter.Language {
 
 func getLangC() *sitter.Language {
 	return clang.GetLanguage()
+}
+
+func getLangZig() *sitter.Language {
+	return ziglang.GetLanguage()
 }

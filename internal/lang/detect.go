@@ -13,6 +13,7 @@ const (
 	Kotlin
 	C
 	CUDA
+	Zig
 )
 
 func Detect(path string) Language {
@@ -33,6 +34,8 @@ func Detect(path string) Language {
 		return C
 	case ".cu", ".cuh":
 		return CUDA
+	case ".zig":
+		return Zig
 	default:
 		return Unknown
 	}
