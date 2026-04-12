@@ -12,6 +12,7 @@ const (
 	Markdown
 	Kotlin
 	C
+	CUDA
 )
 
 func Detect(path string) Language {
@@ -30,6 +31,8 @@ func Detect(path string) Language {
 		return Kotlin
 	case ".c", ".h":
 		return C
+	case ".cu", ".cuh":
+		return CUDA
 	default:
 		return Unknown
 	}

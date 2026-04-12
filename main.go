@@ -247,6 +247,8 @@ func newExtractor(language lang.Language) extractor.Extractor {
 		return extractor.NewKotlin()
 	case lang.C:
 		return extractor.NewC()
+	case lang.CUDA:
+		return extractor.NewCUDA()
 	default:
 		return nil
 	}

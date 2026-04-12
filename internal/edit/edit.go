@@ -24,6 +24,8 @@ func getLanguage(path string) *sitter.Language {
 		return getLangKotlin()
 	case lang.C:
 		return getLangC()
+	case lang.CUDA:
+		return getLangC() // CUDA は C パーサーで解析
 	default:
 		return nil
 	}
