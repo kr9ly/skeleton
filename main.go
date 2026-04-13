@@ -75,7 +75,7 @@ func runFile(path string) {
 		os.Exit(1)
 	}
 
-	ext := newExtractor(language)
+	ext := extractor.New(language)
 	if ext == nil {
 		fmt.Fprintf(os.Stderr, "unsupported language: %s\n", path)
 		os.Exit(1)
@@ -233,25 +233,3 @@ func runEditRemove(args []string) {
 	}
 }
 
-func newExtractor(language lang.Language) extractor.Extractor {
-	switch language {
-	case lang.TypeScript:
-		return extractor.NewTypeScript()
-	case lang.Python:
-		return extractor.NewPython()
-	case lang.Go:
-		return extractor.NewGo()
-	case lang.Markdown:
-		return extractor.NewMarkdown()
-	case lang.Kotlin:
-		return extractor.NewKotlin()
-	case lang.C:
-		return extractor.NewC()
-	case lang.CUDA:
-		return extractor.NewCUDA()
-	case lang.Zig:
-		return extractor.NewZig()
-	default:
-		return nil
-	}
-}

@@ -304,7 +304,7 @@ func toolSkeleton(raw json.RawMessage) callResult {
 		return errResult("unsupported file type: " + args.Path)
 	}
 
-	ext := newExtractor(language)
+	ext := extractor.New(language)
 	if ext == nil {
 		return errResult("unsupported language: " + args.Path)
 	}
@@ -402,22 +402,6 @@ func toolEditRemove(raw json.RawMessage) callResult {
 	return textResult("removed from " + args.Path)
 }
 
-func newExtractor(language lang.Language) extractor.Extractor {
-	switch language {
-	case lang.TypeScript:
-		return extractor.NewTypeScript()
-	case lang.Python:
-		return extractor.NewPython()
-	case lang.Go:
-		return extractor.NewGo()
-	case lang.Markdown:
-		return extractor.NewMarkdown()
-	case lang.Kotlin:
-		return extractor.NewKotlin()
-	default:
-		return nil
-	}
-}
 
 func textResult(text string) callResult {
 	return callResult{

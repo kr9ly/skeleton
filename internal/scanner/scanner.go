@@ -31,7 +31,7 @@ func ScanDir(dir string, opts Options) (*skeleton.Dir, error) {
 			return
 		}
 
-		ext := newExtractor(language)
+		ext := extractor.New(language)
 		if ext == nil {
 			files = append(files, skeleton.File{Path: rel})
 			return
@@ -122,28 +122,6 @@ func isTestFile(name string) bool {
 		strings.HasSuffix(name, "_test.cu")
 }
 
-func newExtractor(language lang.Language) extractor.Extractor {
-	switch language {
-	case lang.TypeScript:
-		return extractor.NewTypeScript()
-	case lang.Python:
-		return extractor.NewPython()
-	case lang.Go:
-		return extractor.NewGo()
-	case lang.Markdown:
-		return extractor.NewMarkdown()
-	case lang.Kotlin:
-		return extractor.NewKotlin()
-	case lang.C:
-		return extractor.NewC()
-	case lang.CUDA:
-		return extractor.NewCUDA()
-	case lang.Zig:
-		return extractor.NewZig()
-	default:
-		return nil
-	}
-}
 
 func buildDeps(baseDir string, files []skeleton.File, aliases *tsconfig.PathAliases) []skeleton.Dep {
 	absBaseDir, _ := filepath.Abs(baseDir)
