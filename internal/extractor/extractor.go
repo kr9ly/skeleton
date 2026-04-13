@@ -27,6 +27,8 @@ func New(language lang.Language) Extractor {
 		return NewCUDA()
 	case lang.Zig:
 		return NewZig()
+	case lang.CPP:
+		return NewCPP()
 	default:
 		return nil
 	}

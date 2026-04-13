@@ -4,6 +4,7 @@ import (
 	sitter "github.com/smacker/go-tree-sitter"
 	"github.com/smacker/go-tree-sitter/golang"
 	clang "github.com/smacker/go-tree-sitter/c"
+	"github.com/smacker/go-tree-sitter/cpp"
 	"github.com/smacker/go-tree-sitter/kotlin"
 	"github.com/smacker/go-tree-sitter/python"
 	"github.com/smacker/go-tree-sitter/typescript/typescript"
@@ -32,4 +33,8 @@ func getLangC() *sitter.Language {
 
 func getLangZig() *sitter.Language {
 	return ziglang.GetLanguage()
+}
+
+func getLangCPP() *sitter.Language {
+	return cpp.GetLanguage()
 }

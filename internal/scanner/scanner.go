@@ -119,7 +119,11 @@ func isTestFile(name string) bool {
 		name == "conftest.py" ||
 		strings.HasSuffix(name, "_test.go") ||
 		strings.HasSuffix(name, "_test.c") ||
-		strings.HasSuffix(name, "_test.cu")
+		strings.HasSuffix(name, "_test.cu") ||
+		strings.HasSuffix(name, "_test.cpp") ||
+		strings.HasSuffix(name, "_test.hpp") ||
+		strings.HasSuffix(name, "_test.cc") ||
+		strings.HasSuffix(name, "_test.cxx")
 }
 
 

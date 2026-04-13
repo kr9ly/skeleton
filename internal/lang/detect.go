@@ -14,6 +14,7 @@ const (
 	C
 	CUDA
 	Zig
+	CPP
 )
 
 func Detect(path string) Language {
@@ -36,6 +37,8 @@ func Detect(path string) Language {
 		return CUDA
 	case ".zig":
 		return Zig
+	case ".cpp", ".hpp", ".cc", ".hh", ".cxx", ".hxx":
+		return CPP
 	default:
 		return Unknown
 	}

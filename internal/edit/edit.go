@@ -28,6 +28,8 @@ func getLanguage(path string) *sitter.Language {
 		return getLangC() // CUDA は C パーサーで解析
 	case lang.Zig:
 		return getLangZig()
+	case lang.CPP:
+		return getLangCPP()
 	default:
 		return nil
 	}
