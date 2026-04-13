@@ -1,0 +1,70 @@
+#version 450
+
+#include "common.glsl"
+
+#define WORKGROUP_SIZE 256
+#define CLAMP(x, lo, hi) max(lo, min(hi, x))
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+struct Particle {
+    vec4 position;
+    vec4 velocity;
+    float mass;
+    float lifetime;
+};
+
+struct SimParams {
+    float deltaTime;
+    float gravity;
+    uint numParticles;
+};
+
+layout(std430, binding = 0) buffer ParticleBuffer {
+    Particle particles[];
+};
+
+layout(std140, binding = 1) uniform SimUniform {
+    SimParams params;
+};
+
+layout(binding = 2) uniform sampler2D noiseTex;
+
+uniform float globalScale;
+
+shared vec4 sharedPositions[WORKGROUP_SIZE];
+
+in vec3 fragColor;
+out vec4 outColor;
+
+float computeForce(vec3 a, vec3 b, float massA, float massB) {
+    vec3 diff = b - a;
+    float dist = length(diff) + 0.001;
+    return (massA * massB) / (dist * dist);
+}
+
+vec3 integrate(vec3 pos, vec3 vel, float dt) {
+    return pos + vel * dt;
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= params.numParticles) return;
+
+    Particle p = particles[idx];
+    sharedPositions[gl_LocalInvocationID.x] = p.position;
+    barrier();
+
+    vec3 totalForce = vec3(0.0);
+    for (uint i = 0; i < gl_WorkGroupSize.x; i++) {
+        if (i != gl_LocalInvocationID.x) {
+            totalForce.y -= params.gravity;
+        }
+    }
+
+    vec3 newVel = p.velocity.xyz + totalForce * params.deltaTime;
+    vec3 newPos = integrate(p.position.xyz, newVel, params.deltaTime);
+
+    particles[idx].position = vec4(newPos, 1.0);
+    particles[idx].velocity = vec4(newVel, 0.0);
+}

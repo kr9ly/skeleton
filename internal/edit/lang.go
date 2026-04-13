@@ -8,6 +8,7 @@ import (
 	"github.com/smacker/go-tree-sitter/kotlin"
 	"github.com/smacker/go-tree-sitter/python"
 	"github.com/smacker/go-tree-sitter/typescript/typescript"
+	glsllang "github.com/kr9ly/skeleton/internal/treesitter/glsl"
 	ziglang "github.com/kr9ly/skeleton/internal/treesitter/zig"
 )
 
@@ -37,4 +38,8 @@ func getLangZig() *sitter.Language {
 
 func getLangCPP() *sitter.Language {
 	return cpp.GetLanguage()
+}
+
+func getLangGLSL() *sitter.Language {
+	return glsllang.GetLanguage()
 }

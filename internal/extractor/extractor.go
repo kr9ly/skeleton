@@ -29,6 +29,8 @@ func New(language lang.Language) Extractor {
 		return NewZig()
 	case lang.CPP:
 		return NewCPP()
+	case lang.GLSL:
+		return NewGLSL()
 	default:
 		return nil
 	}

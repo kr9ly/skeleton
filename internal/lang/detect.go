@@ -15,6 +15,7 @@ const (
 	CUDA
 	Zig
 	CPP
+	GLSL
 )
 
 func Detect(path string) Language {
@@ -39,6 +40,8 @@ func Detect(path string) Language {
 		return Zig
 	case ".cpp", ".hpp", ".cc", ".hh", ".cxx", ".hxx":
 		return CPP
+	case ".glsl", ".vert", ".frag", ".comp", ".geom", ".tesc", ".tese":
+		return GLSL
 	default:
 		return Unknown
 	}
