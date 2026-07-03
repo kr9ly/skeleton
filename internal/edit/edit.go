@@ -32,6 +32,8 @@ func getLanguage(path string) *sitter.Language {
 		return getLangCPP()
 	case lang.GLSL:
 		return getLangGLSL()
+	case lang.Java:
+		return getLangJava()
 	default:
 		return nil
 	}

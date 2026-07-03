@@ -31,6 +31,8 @@ func New(language lang.Language) Extractor {
 		return NewCPP()
 	case lang.GLSL:
 		return NewGLSL()
+	case lang.Java:
+		return NewJava()
 	default:
 		return nil
 	}

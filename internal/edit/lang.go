@@ -5,6 +5,7 @@ import (
 	"github.com/smacker/go-tree-sitter/golang"
 	clang "github.com/smacker/go-tree-sitter/c"
 	"github.com/smacker/go-tree-sitter/cpp"
+	"github.com/smacker/go-tree-sitter/java"
 	"github.com/smacker/go-tree-sitter/kotlin"
 	"github.com/smacker/go-tree-sitter/python"
 	"github.com/smacker/go-tree-sitter/typescript/typescript"
@@ -42,4 +43,8 @@ func getLangCPP() *sitter.Language {
 
 func getLangGLSL() *sitter.Language {
 	return glsllang.GetLanguage()
+}
+
+func getLangJava() *sitter.Language {
+	return java.GetLanguage()
 }

@@ -18,6 +18,7 @@ AI エージェントの「まず骨格を見て、必要なら Read」という
 | Python | `.py` |
 | Go | `.go` |
 | Kotlin | `.kt` `.kts` |
+| Java | `.java` |
 | C | `.c` `.h` |
 | C++ | `.cpp` `.hpp` `.cc` `.hh` `.cxx` `.hxx` |
 | CUDA | `.cu` `.cuh` |

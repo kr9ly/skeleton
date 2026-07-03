@@ -16,6 +16,7 @@ const (
 	Zig
 	CPP
 	GLSL
+	Java
 )
 
 func Detect(path string) Language {
@@ -42,6 +43,8 @@ func Detect(path string) Language {
 		return CPP
 	case ".glsl", ".vert", ".frag", ".comp", ".geom", ".tesc", ".tese":
 		return GLSL
+	case ".java":
+		return Java
 	default:
 		return Unknown
 	}

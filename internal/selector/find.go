@@ -108,7 +108,9 @@ func matchesKind(kind string, node *sitter.Node, src []byte) bool {
 			nodeType == "method_declaration" // Go
 	case "class":
 		return nodeType == "class_declaration" ||
-			nodeType == "class_definition"
+			nodeType == "class_definition" ||
+			nodeType == "enum_declaration" || // Java
+			nodeType == "record_declaration" // Java
 	case "interface":
 		return nodeType == "interface_declaration"
 	case "type":
