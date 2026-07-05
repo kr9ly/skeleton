@@ -11,6 +11,7 @@ import (
 	"github.com/kr9ly/skeleton/internal/edit"
 	"github.com/kr9ly/skeleton/internal/extractor"
 	"github.com/kr9ly/skeleton/internal/lang"
+	"github.com/kr9ly/skeleton/internal/moduledep"
 	"github.com/kr9ly/skeleton/internal/render"
 	"github.com/kr9ly/skeleton/internal/scanner"
 	"github.com/kr9ly/skeleton/internal/selector"
@@ -184,6 +185,20 @@ func getTools() []tool {
 			},
 		},
 		{
+			Name:        "skeleton_modules",
+			Description: "マルチモジュールプロジェクトのモジュール間依存グラフを返す（対応: Gradle の settings.gradle(.kts) + build.gradle(.kts)）。モジュール構成の俯瞰・依存方向の確認・被依存の多いモジュールの特定に使う。ファイル単位ではなくビルドシステムのモジュール単位。",
+			InputSchema: inputSchema{
+				Type: "object",
+				Properties: map[string]property{
+					"path": {
+						Type:        "string",
+						Description: "プロジェクトルートの絶対パス（settings.gradle(.kts) があるディレクトリ）",
+					},
+				},
+				Required: []string{"path"},
+			},
+		},
+		{
 			Name:        "skeleton_edit_insert",
 			Description: "ASTノードセレクタで位置を指定してコードを挿入する。セレクタは skeleton ツールの出力から構成できる（例: function:getUser, class:AuthService, last:import）。",
 			InputSchema: inputSchema{
@@ -253,6 +268,8 @@ func handleToolCall(req jsonRPCRequest) jsonRPCResponse {
 	switch params.Name {
 	case "skeleton":
 		result = toolSkeleton(params.Arguments)
+	case "skeleton_modules":
+		result = toolModules(params.Arguments)
 	case "skeleton_edit_insert":
 		result = toolEditInsert(params.Arguments)
 	case "skeleton_edit_remove":
@@ -315,6 +332,21 @@ func toolSkeleton(raw json.RawMessage) callResult {
 	}
 	file.Path = args.Path
 	return textResult(render.Text(file))
+}
+
+func toolModules(raw json.RawMessage) callResult {
+	var args struct {
+		Path string `json:"path"`
+	}
+	if err := json.Unmarshal(raw, &args); err != nil {
+		return errResult("invalid arguments: " + err.Error())
+	}
+
+	graph, err := moduledep.Extract(args.Path)
+	if err != nil {
+		return errResult(err.Error())
+	}
+	return textResult(render.TextModules(graph))
 }
 
 func toolEditInsert(raw json.RawMessage) callResult {

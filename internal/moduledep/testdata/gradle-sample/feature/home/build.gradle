@@ -1,0 +1,7 @@
+apply plugin: 'com.android.library'
+
+dependencies {
+    implementation project(':core:model')
+    api project(':core:ui')
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}

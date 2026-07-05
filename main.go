@@ -10,6 +10,7 @@ import (
 	"github.com/kr9ly/skeleton/internal/extractor"
 	"github.com/kr9ly/skeleton/internal/lang"
 	"github.com/kr9ly/skeleton/internal/mcp"
+	"github.com/kr9ly/skeleton/internal/moduledep"
 	"github.com/kr9ly/skeleton/internal/render"
 	"github.com/kr9ly/skeleton/internal/scanner"
 	"github.com/kr9ly/skeleton/internal/selector"
@@ -29,6 +30,11 @@ func main() {
 		return
 	}
 
+	if len(os.Args) > 1 && os.Args[1] == "modules" {
+		runModules(os.Args[2:])
+		return
+	}
+
 	fs := flag.NewFlagSet("skeleton", flag.ExitOnError)
 	depth := fs.Int("depth", 1, "directory traversal depth")
 	noTest := fs.Bool("no-test", false, "exclude test files")
@@ -38,6 +44,7 @@ func main() {
 	if fs.NArg() < 1 {
 		fmt.Fprintln(os.Stderr, "usage: skeleton [flags] <file|dir>")
 		fmt.Fprintln(os.Stderr, "       skeleton edit <insert|remove> [flags] <file>")
+		fmt.Fprintln(os.Stderr, "       skeleton modules [dir]")
 		fs.PrintDefaults()
 		os.Exit(1)
 	}
@@ -90,6 +97,23 @@ func runFile(path string) {
 	fmt.Print(render.Text(file))
 }
 
+func runModules(args []string) {
+	fs := flag.NewFlagSet("skeleton modules", flag.ExitOnError)
+	fs.Parse(args)
+
+	root := "."
+	if fs.NArg() > 0 {
+		root = fs.Arg(0)
+	}
+
+	graph, err := moduledep.Extract(root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Print(render.TextModules(graph))
+}
+
 func runEdit(args []string) {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "usage: skeleton edit <insert|remove> [flags] <file>")
@@ -137,44 +161,36 @@ func runEditInsert(args []string) {
 	codeStr := string(code)
 
 	var selStr string
-	var result []byte
-
 	switch {
 	case *before != "":
 		selStr = *before
-		sel, err := selector.Parse(selStr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "selector error: %v\n", err)
-			os.Exit(1)
-		}
-		result, err = edit.InsertBefore(src, path, sel, codeStr)
 	case *after != "":
 		selStr = *after
-		sel, err := selector.Parse(selStr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "selector error: %v\n", err)
-			os.Exit(1)
-		}
-		result, err = edit.InsertAfter(src, path, sel, codeStr)
 	case *into != "":
 		selStr = *into
-		sel, err := selector.Parse(selStr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "selector error: %v\n", err)
-			os.Exit(1)
-		}
-		result, err = edit.InsertInto(src, path, sel, codeStr, false)
 	case *intoHead != "":
 		selStr = *intoHead
-		sel, err := selector.Parse(selStr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "selector error: %v\n", err)
-			os.Exit(1)
-		}
-		result, err = edit.InsertInto(src, path, sel, codeStr, true)
 	default:
 		fmt.Fprintln(os.Stderr, "specify one of: --before, --after, --into, --into-head")
 		os.Exit(1)
+	}
+
+	sel, err := selector.Parse(selStr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selector error: %v\n", err)
+		os.Exit(1)
+	}
+
+	var result []byte
+	switch {
+	case *before != "":
+		result, err = edit.InsertBefore(src, path, sel, codeStr)
+	case *after != "":
+		result, err = edit.InsertAfter(src, path, sel, codeStr)
+	case *into != "":
+		result, err = edit.InsertInto(src, path, sel, codeStr, false)
+	case *intoHead != "":
+		result, err = edit.InsertInto(src, path, sel, codeStr, true)
 	}
 
 	if err != nil {

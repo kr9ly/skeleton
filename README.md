@@ -77,6 +77,37 @@ skeleton -no-test <dir>         # テストファイルを除外
 skeleton -filter '*.kt' <dir>   # glob でファイルを絞り込み
 ```
 
+### モジュール依存グラフ
+
+マルチモジュールプロジェクトのモジュール間依存を可視化する。ビルドシステムは自動検出される（現在は Gradle に対応）。
+
+```bash
+skeleton modules [dir]          # モジュール一覧 + 依存 + 逆依存（dir 省略時はカレント）
+```
+
+出力例:
+
+```
+# /path/to/project (gradle, 5 modules)
+
+:app
+  -> :core:model (implementation)
+  -> :core:ui (implementation)
+:core:model
+:core:ui
+  -> :core:model (api)
+
+## reverse deps
+:core:model <- :app, :core:ui
+```
+
+Gradle 対応の詳細:
+
+- `settings.gradle` / `settings.gradle.kts` の `include` 宣言からモジュールを列挙（`projectDir` 上書きにも対応）
+- 各モジュールの `build.gradle(.kts)` から `project(":x")` 依存を抽出（Groovy / Kotlin DSL 両対応）
+- typesafe project accessor（`implementation(projects.coreModel)`）に対応
+- `apply from: rootProject.file(...)` 等の共有スクリプト経由の依存宣言も再帰的に追跡
+
 ### AST 編集
 
 コードの挿入はコードを stdin から渡す。位置は AST ノードセレクタで指定する。
@@ -134,6 +165,12 @@ kind: `function` `class` `interface` `type` `import` `export` `method` `field`
 | `path` | string | Yes | — | ファイルまたはディレクトリの絶対パス |
 | `depth` | number | No | 1 | ディレクトリ探索の深度 |
 | `no_test` | boolean | No | false | テストファイルを除外 |
+
+#### `skeleton_modules` — モジュール依存グラフ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| `path` | string | Yes | プロジェクトルートの絶対パス |
 
 #### `skeleton_edit_insert` — AST 位置指定でコード挿入
 
