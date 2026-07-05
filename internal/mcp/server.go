@@ -128,7 +128,7 @@ func handle(req jsonRPCRequest) jsonRPCResponse {
 				},
 				"serverInfo": map[string]interface{}{
 					"name":    "skeleton",
-					"version": "0.1.0",
+					"version": "0.3.0",
 				},
 			},
 		}
