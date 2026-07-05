@@ -40,8 +40,9 @@ var (
 	projectDirRe = regexp.MustCompile(`project\s*\(\s*["']([^"']+)["']\s*\)\s*\.projectDir\s*=\s*(?:new\s+File|file)\s*\(\s*["']([^"']+)["']`)
 	// implementation(project(":x")) / api project(':x') / implementation(project(path = ":x"))
 	projectDepRe = regexp.MustCompile(`(\w+)\s*\(?\s*project\s*\(\s*(?:path\s*[:=]\s*)?["']([^"']+)["']`)
-	// implementation(projects.coreModel) — typesafe project accessor
-	accessorDepRe = regexp.MustCompile(`(\w+)\s*\(?\s*projects\.([A-Za-z0-9_.]+)`)
+	// implementation(projects.coreModel) — typesafe project accessor。
+	// 設定名の直後に空白か括弧を必須にする（文字列内の誤マッチを防ぐ）
+	accessorDepRe = regexp.MustCompile(`(\w+)(?:\s+|\s*\(\s*)projects\.([A-Za-z0-9_.]+)`)
 	// apply from: rootProject.file('settings/x.gradle') / apply(from = "${rootDir}/x.gradle")
 	applyFromRe = regexp.MustCompile(`(?m)^\s*apply\s*\(?\s*from\s*[:=][^\n]*`)
 
@@ -54,7 +55,13 @@ func stripComments(src string) string {
 	return lineCommentRe.ReplaceAllString(src, "$1")
 }
 
-func (g *gradleProvider) Extract(root string) (*skeleton.ModuleGraph, error) {
+type moduleRef struct {
+	name string
+	dir  string // ルートからの相対
+}
+
+// moduleRefs は settings.gradle(.kts) からモジュール名とディレクトリの対応を得る
+func (g *gradleProvider) moduleRefs(root string) ([]moduleRef, error) {
 	settingsPath := findSettingsFile(root)
 	src, err := os.ReadFile(settingsPath)
 	if err != nil {
@@ -65,22 +72,35 @@ func (g *gradleProvider) Extract(root string) (*skeleton.ModuleGraph, error) {
 	names := parseIncludes(settings)
 	dirOverrides := parseProjectDirs(settings)
 
-	// typesafe accessor（projects.coreModel）→ モジュール名の逆引き表
-	accessorMap := make(map[string]string)
-	for _, name := range names {
-		accessorMap[accessorFor(name)] = name
-	}
-
-	var modules []skeleton.Module
+	refs := make([]moduleRef, 0, len(names))
 	for _, name := range names {
 		dir := dirOverrides[name]
 		if dir == "" {
 			dir = strings.ReplaceAll(strings.TrimPrefix(name, ":"), ":", string(filepath.Separator))
 		}
+		refs = append(refs, moduleRef{name: name, dir: dir})
+	}
+	return refs, nil
+}
+
+func (g *gradleProvider) Extract(root string) (*skeleton.ModuleGraph, error) {
+	refs, err := g.moduleRefs(root)
+	if err != nil {
+		return nil, err
+	}
+
+	// typesafe accessor（projects.coreModel）→ モジュール名の逆引き表
+	accessorMap := make(map[string]string)
+	for _, ref := range refs {
+		accessorMap[accessorFor(ref.name)] = ref.name
+	}
+
+	var modules []skeleton.Module
+	for _, ref := range refs {
 		modules = append(modules, skeleton.Module{
-			Name: name,
-			Dir:  dir,
-			Deps: parseDeps(root, filepath.Join(root, dir), accessorMap),
+			Name: ref.name,
+			Dir:  ref.dir,
+			Deps: parseDeps(root, filepath.Join(root, ref.dir), accessorMap),
 		})
 	}
 
@@ -169,9 +189,9 @@ func camelize(s string) string {
 	return strings.Join(parts, "")
 }
 
-// parseDeps は moduleDir の build.gradle(.kts) から project 依存を抽出する。
-// apply from: で参照される共有スクリプト内の宣言も再帰的に辿る。
-func parseDeps(root, moduleDir string, accessorMap map[string]string) []skeleton.ModuleDep {
+// scanBuildScripts は moduleDir の build.gradle(.kts) と、apply from: で参照される
+// 共有スクリプトを再帰的に辿り、コメント除去済みの内容ごとに visit を呼ぶ
+func scanBuildScripts(root, moduleDir string, visit func(content string)) {
 	var buildFile string
 	for _, name := range []string{"build.gradle.kts", "build.gradle"} {
 		p := filepath.Join(moduleDir, name)
@@ -181,17 +201,7 @@ func parseDeps(root, moduleDir string, accessorMap map[string]string) []skeleton
 		}
 	}
 	if buildFile == "" {
-		return nil
-	}
-
-	seen := make(map[skeleton.ModuleDep]bool)
-	var deps []skeleton.ModuleDep
-	add := func(kind, target string) {
-		d := skeleton.ModuleDep{Target: target, Kind: kind}
-		if !seen[d] {
-			seen[d] = true
-			deps = append(deps, d)
-		}
+		return
 	}
 
 	visited := make(map[string]bool)
@@ -208,7 +218,30 @@ func parseDeps(root, moduleDir string, accessorMap map[string]string) []skeleton
 			return
 		}
 		content := stripComments(string(src))
+		visit(content)
 
+		for _, line := range applyFromRe.FindAllString(content, -1) {
+			if p := resolveApplyFrom(line, root, moduleDir); p != "" {
+				scan(p)
+			}
+		}
+	}
+	scan(buildFile)
+}
+
+// parseDeps は moduleDir の build.gradle(.kts) から project 依存を抽出する
+func parseDeps(root, moduleDir string, accessorMap map[string]string) []skeleton.ModuleDep {
+	seen := make(map[skeleton.ModuleDep]bool)
+	var deps []skeleton.ModuleDep
+	add := func(kind, target string) {
+		d := skeleton.ModuleDep{Target: target, Kind: kind}
+		if !seen[d] {
+			seen[d] = true
+			deps = append(deps, d)
+		}
+	}
+
+	scanBuildScripts(root, moduleDir, func(content string) {
 		for _, m := range projectDepRe.FindAllStringSubmatch(content, -1) {
 			add(m[1], normalizeModuleName(m[2]))
 		}
@@ -224,13 +257,7 @@ func parseDeps(root, moduleDir string, accessorMap map[string]string) []skeleton
 			}
 			add(m[1], target)
 		}
-		for _, line := range applyFromRe.FindAllString(content, -1) {
-			if p := resolveApplyFrom(line, root, moduleDir); p != "" {
-				scan(p)
-			}
-		}
-	}
-	scan(buildFile)
+	})
 
 	sort.Slice(deps, func(i, j int) bool {
 		if deps[i].Target != deps[j].Target {

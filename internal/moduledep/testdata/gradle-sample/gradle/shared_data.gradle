@@ -2,4 +2,5 @@ apply from: "${rootDir}/gradle/shared_common.gradle"
 
 dependencies {
     implementation project(':legacy-lib')
+    implementation libs.moshi.kotlin
 }

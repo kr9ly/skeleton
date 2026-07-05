@@ -10,4 +10,6 @@ dependencies {
     /* block comment: api(project(":core:ui")) */
     // line comment: implementation(project(":legacy-lib"))
     implementation("io.ktor:ktor-client-core:2.3.0") // https://ktor.io
+    implementation(libs.bundles.network.stack)
+    implementation(platform("androidx.compose:compose-bom:2024.05.00"))
 }

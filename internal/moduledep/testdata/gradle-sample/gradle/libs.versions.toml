@@ -1,0 +1,17 @@
+[versions]
+moshi = "1.15.0"
+
+[libraries]
+moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
+okhttp = "com.squareup.okhttp3:okhttp:4.12.0"
+retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version = "2.9.0" }
+guava = { module = 'com.google.guava:guava', version = '33.0.0' }
+
+[bundles]
+network-stack = [
+    "okhttp",
+    "retrofit-core",
+]
+
+[plugins]
+android-application = { id = "com.android.application", version = "8.4.0" }

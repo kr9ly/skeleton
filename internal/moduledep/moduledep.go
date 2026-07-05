@@ -20,6 +20,12 @@ var providers = []Provider{
 	&gradleProvider{},
 }
 
+// LibsProvider は外部ライブラリ依存の一覧抽出に対応した Provider
+type LibsProvider interface {
+	Provider
+	ExtractLibs(root string) (*skeleton.LibsReport, error)
+}
+
 // Extract は root に一致する Provider を検出してモジュールグラフを抽出する
 func Extract(root string) (*skeleton.ModuleGraph, error) {
 	for _, p := range providers {
@@ -27,9 +33,27 @@ func Extract(root string) (*skeleton.ModuleGraph, error) {
 			return p.Extract(root)
 		}
 	}
+	return nil, errNoBuildSystem(root)
+}
+
+// ExtractLibs は root に一致する Provider を検出して外部ライブラリ一覧を抽出する
+func ExtractLibs(root string) (*skeleton.LibsReport, error) {
+	for _, p := range providers {
+		if p.Detect(root) {
+			lp, ok := p.(LibsProvider)
+			if !ok {
+				return nil, fmt.Errorf("build system %s does not support library extraction", p.Name())
+			}
+			return lp.ExtractLibs(root)
+		}
+	}
+	return nil, errNoBuildSystem(root)
+}
+
+func errNoBuildSystem(root string) error {
 	var names []string
 	for _, p := range providers {
 		names = append(names, p.Name())
 	}
-	return nil, fmt.Errorf("no supported build system found in %s (supported: %s)", root, strings.Join(names, ", "))
+	return fmt.Errorf("no supported build system found in %s (supported: %s)", root, strings.Join(names, ", "))
 }

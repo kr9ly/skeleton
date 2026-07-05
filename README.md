@@ -108,6 +108,32 @@ Gradle 対応の詳細:
 - typesafe project accessor（`implementation(projects.coreModel)`）に対応
 - `apply from: rootProject.file(...)` 等の共有スクリプト経由の依存宣言も再帰的に追跡
 
+### 外部ライブラリ一覧
+
+プロジェクトが**宣言する**外部ライブラリ依存を、ライブラリ → 使用モジュールの逆引きで一覧する。
+バージョンがモジュール間で割れている場合はバージョンごとに表示される。
+
+```bash
+skeleton libs [dir]             # 宣言ライブラリ一覧（dir 省略時はカレント）
+```
+
+出力例:
+
+```
+# /path/to/project (gradle, 42 libraries)
+
+com.squareup.okhttp3:okhttp
+  4.11.0 <- :legacy-lib
+  4.12.0 <- :app, :feature:home
+com.squareup.moshi:moshi-kotlin 1.15.0 <- :core:model
+androidx.core:core-ktx 1.13.1 <- (91 modules)
+```
+
+- version catalog（`gradle/libs.versions.toml`）の accessor / bundle を座標に解決する
+- モジュールシステムがない単一プロジェクトでも動く（使用元リストを省いた単純な一覧になる）
+- **宣言ベース（直接依存のみ）**: 推移的依存・BOM 適用後の実バージョン・競合解決の結果が必要なら `gradle dependencies` を使うこと
+- Groovy 変数など解決できない表記は宣言のまま出力する（例: `com.x:y $gsonVersion`）
+
 ### AST 編集
 
 コードの挿入はコードを stdin から渡す。位置は AST ノードセレクタで指定する。
@@ -167,6 +193,12 @@ kind: `function` `class` `interface` `type` `import` `export` `method` `field`
 | `no_test` | boolean | No | false | テストファイルを除外 |
 
 #### `skeleton_modules` — モジュール依存グラフ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| `path` | string | Yes | プロジェクトルートの絶対パス |
+
+#### `skeleton_libs` — 外部ライブラリ一覧
 
 | パラメータ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|

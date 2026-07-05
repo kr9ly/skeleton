@@ -199,6 +199,20 @@ func getTools() []tool {
 			},
 		},
 		{
+			Name:        "skeleton_libs",
+			Description: "プロジェクトが宣言する外部ライブラリ依存の一覧を返す（対応: Gradle。version catalog 解決込み）。ライブラリ → 使用モジュールの逆引きで、バージョンの割れも見える。宣言ベース（直接依存のみ）— 推移的依存や解決後バージョンが必要なら gradle dependencies を使うこと。",
+			InputSchema: inputSchema{
+				Type: "object",
+				Properties: map[string]property{
+					"path": {
+						Type:        "string",
+						Description: "プロジェクトルートの絶対パス",
+					},
+				},
+				Required: []string{"path"},
+			},
+		},
+		{
 			Name:        "skeleton_edit_insert",
 			Description: "ASTノードセレクタで位置を指定してコードを挿入する。セレクタは skeleton ツールの出力から構成できる（例: function:getUser, class:AuthService, last:import）。",
 			InputSchema: inputSchema{
@@ -270,6 +284,8 @@ func handleToolCall(req jsonRPCRequest) jsonRPCResponse {
 		result = toolSkeleton(params.Arguments)
 	case "skeleton_modules":
 		result = toolModules(params.Arguments)
+	case "skeleton_libs":
+		result = toolLibs(params.Arguments)
 	case "skeleton_edit_insert":
 		result = toolEditInsert(params.Arguments)
 	case "skeleton_edit_remove":
@@ -347,6 +363,21 @@ func toolModules(raw json.RawMessage) callResult {
 		return errResult(err.Error())
 	}
 	return textResult(render.TextModules(graph))
+}
+
+func toolLibs(raw json.RawMessage) callResult {
+	var args struct {
+		Path string `json:"path"`
+	}
+	if err := json.Unmarshal(raw, &args); err != nil {
+		return errResult("invalid arguments: " + err.Error())
+	}
+
+	report, err := moduledep.ExtractLibs(args.Path)
+	if err != nil {
+		return errResult(err.Error())
+	}
+	return textResult(render.TextLibs(report))
 }
 
 func toolEditInsert(raw json.RawMessage) callResult {

@@ -35,6 +35,11 @@ func main() {
 		return
 	}
 
+	if len(os.Args) > 1 && os.Args[1] == "libs" {
+		runLibs(os.Args[2:])
+		return
+	}
+
 	fs := flag.NewFlagSet("skeleton", flag.ExitOnError)
 	depth := fs.Int("depth", 1, "directory traversal depth")
 	noTest := fs.Bool("no-test", false, "exclude test files")
@@ -45,6 +50,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "usage: skeleton [flags] <file|dir>")
 		fmt.Fprintln(os.Stderr, "       skeleton edit <insert|remove> [flags] <file>")
 		fmt.Fprintln(os.Stderr, "       skeleton modules [dir]")
+		fmt.Fprintln(os.Stderr, "       skeleton libs [dir]")
 		fs.PrintDefaults()
 		os.Exit(1)
 	}
@@ -112,6 +118,23 @@ func runModules(args []string) {
 		os.Exit(1)
 	}
 	fmt.Print(render.TextModules(graph))
+}
+
+func runLibs(args []string) {
+	fs := flag.NewFlagSet("skeleton libs", flag.ExitOnError)
+	fs.Parse(args)
+
+	root := "."
+	if fs.NArg() > 0 {
+		root = fs.Arg(0)
+	}
+
+	report, err := moduledep.ExtractLibs(root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Print(render.TextLibs(report))
 }
 
 func runEdit(args []string) {
