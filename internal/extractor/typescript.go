@@ -92,21 +92,27 @@ func extractDeclaration(decl *sitter.Node, src []byte, isDefault bool) []skeleto
 	case "function_declaration", "function_signature":
 		sig := signatureWithoutBody(decl, src)
 		name := fieldContent(decl, "name", src)
+		start, end := nodeLines(decl)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportFunction,
 			Name:      name,
 			Signature: prefix + sig,
+			StartLine: start,
+			EndLine:   end,
 		}}
 
 	case "class_declaration":
 		sig := classSignature(decl, src)
 		name := fieldContent(decl, "name", src)
 		members := extractClassMembers(decl, src)
+		start, end := nodeLines(decl)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportClass,
 			Name:      name,
 			Signature: prefix + sig,
 			Members:   members,
+			StartLine: start,
+			EndLine:   end,
 		}}
 
 	case "interface_declaration":
@@ -119,20 +125,26 @@ func extractDeclaration(decl *sitter.Node, src []byte, isDefault bool) []skeleto
 		} else {
 			sig = typeBodySignature(decl, "interface", name, src)
 		}
+		start, end := nodeLines(decl)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportInterface,
 			Name:      name,
 			Signature: prefix + sig,
 			Members:   members,
+			StartLine: start,
+			EndLine:   end,
 		}}
 
 	case "type_alias_declaration":
 		name := fieldContent(decl, "name", src)
 		sig := strings.TrimSpace(content(decl, src))
+		start, end := nodeLines(decl)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportType,
 			Name:      name,
 			Signature: prefix + sig,
+			StartLine: start,
+			EndLine:   end,
 		}}
 
 	case "lexical_declaration":
@@ -140,10 +152,13 @@ func extractDeclaration(decl *sitter.Node, src []byte, isDefault bool) []skeleto
 
 	case "enum_declaration":
 		name := fieldContent(decl, "name", src)
+		start, end := nodeLines(decl)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportType,
 			Name:      name,
 			Signature: prefix + "enum " + name,
+			StartLine: start,
+			EndLine:   end,
 		}}
 
 	default:
@@ -178,10 +193,13 @@ func extractLexicalDeclaration(decl *sitter.Node, src []byte, prefix string) []s
 			sig = keyword + " " + name
 		}
 
+		start, end := nodeLines(vd)
 		exports = append(exports, skeleton.Export{
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: prefix + sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 	}
 	return exports
@@ -257,6 +275,7 @@ func typeBodySignature(node *sitter.Node, keyword, name string, src []byte) stri
 }
 
 func extractDefaultValue(val *sitter.Node, src []byte) []skeleton.Export {
+	start, end := nodeLines(val)
 	switch val.Type() {
 	case "arrow_function", "function":
 		sig := signatureWithoutBody(val, src)
@@ -264,12 +283,16 @@ func extractDefaultValue(val *sitter.Node, src []byte) []skeleton.Export {
 			Kind:      skeleton.ExportFunction,
 			Name:      "default",
 			Signature: "default " + sig,
+			StartLine: start,
+			EndLine:   end,
 		}}
 	default:
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportVariable,
 			Name:      "default",
 			Signature: "default " + strings.TrimSpace(content(val, src)),
+			StartLine: start,
+			EndLine:   end,
 		}}
 	}
 }
@@ -278,10 +301,13 @@ func extractReExport(node *sitter.Node, src []byte) []skeleton.Export {
 	// 全体をそのまま出す（re-export は構造よりもソースが重要）
 	text := strings.TrimSpace(content(node, src))
 	// "export " prefix を除去して import と同じ扱い
+	start, end := nodeLines(node)
 	return []skeleton.Export{{
 		Kind:      skeleton.ExportVariable,
 		Name:      "",
 		Signature: strings.TrimPrefix(text, "export "),
+		StartLine: start,
+		EndLine:   end,
 	}}
 }
 
@@ -309,7 +335,8 @@ func extractClassMembers(node *sitter.Node, src []byte) []skeleton.Member {
 				}
 			}
 			sig := signatureWithoutBody(child, src)
-			members = append(members, skeleton.Member{Kind: kind, Name: name, Signature: sig})
+			start, end := nodeLines(child)
+			members = append(members, skeleton.Member{Kind: kind, Name: name, Signature: sig, StartLine: start, EndLine: end})
 
 		case "public_field_definition":
 			name := fieldContent(child, "name", src)
@@ -318,7 +345,8 @@ func extractClassMembers(node *sitter.Node, src []byte) []skeleton.Member {
 			if typeNode != nil {
 				sig = name + content(typeNode, src)
 			}
-			members = append(members, skeleton.Member{Kind: skeleton.MemberField, Name: name, Signature: sig})
+			start, end := nodeLines(child)
+			members = append(members, skeleton.Member{Kind: skeleton.MemberField, Name: name, Signature: sig, StartLine: start, EndLine: end})
 		}
 	}
 	return members
@@ -339,13 +367,15 @@ func extractInterfaceMembers(node *sitter.Node, src []byte) []skeleton.Member {
 			sig := strings.TrimSpace(content(child, src))
 			// 末尾のセミコロンを除去
 			sig = strings.TrimRight(sig, ";")
-			members = append(members, skeleton.Member{Kind: skeleton.MemberMethod, Name: name, Signature: sig})
+			start, end := nodeLines(child)
+			members = append(members, skeleton.Member{Kind: skeleton.MemberMethod, Name: name, Signature: sig, StartLine: start, EndLine: end})
 
 		case "property_signature":
 			name := fieldContent(child, "name", src)
 			sig := strings.TrimSpace(content(child, src))
 			sig = strings.TrimRight(sig, ";")
-			members = append(members, skeleton.Member{Kind: skeleton.MemberField, Name: name, Signature: sig})
+			start, end := nodeLines(child)
+			members = append(members, skeleton.Member{Kind: skeleton.MemberField, Name: name, Signature: sig, StartLine: start, EndLine: end})
 		}
 	}
 	return members

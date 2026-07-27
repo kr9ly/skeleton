@@ -137,10 +137,13 @@ func cExtractDefine(node *sitter.Node, src []byte) *skeleton.Export {
 	if value != "" {
 		sig += " " + value
 	}
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportVariable,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -159,10 +162,13 @@ func cExtractFunctionMacro(node *sitter.Node, src []byte) *skeleton.Export {
 	if name == "" {
 		return nil
 	}
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      name,
 		Signature: "#define " + name + params,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -187,10 +193,13 @@ func cExtractTypedef(node *sitter.Node, src []byte) *skeleton.Export {
 		return nil
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportType,
 		Name:      name,
 		Signature: text,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -227,11 +236,14 @@ func cExtractEnum(node *sitter.Node, src []byte) *skeleton.Export {
 		return nil
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportType,
 		Name:      name,
 		Signature: "enum " + name,
 		Members:   members,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -251,10 +263,13 @@ func cExtractEnumerators(node *sitter.Node, src []byte) []skeleton.Member {
 			}
 		}
 		if eName != "" {
+			start, end := nodeLines(child)
 			members = append(members, skeleton.Member{
 				Kind:      skeleton.MemberField,
 				Name:      eName,
 				Signature: eName,
+				StartLine: start,
+				EndLine:   end,
 			})
 		}
 	}
@@ -279,11 +294,14 @@ func cExtractStruct(node *sitter.Node, src []byte) *skeleton.Export {
 		return nil
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportClass,
 		Name:      name,
 		Signature: "struct " + name,
 		Members:   members,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -299,10 +317,13 @@ func cExtractStructFields(node *sitter.Node, src []byte) []skeleton.Member {
 		if fieldName == "" {
 			fieldName = sig
 		}
+		start, end := nodeLines(child)
 		members = append(members, skeleton.Member{
 			Kind:      skeleton.MemberField,
 			Name:      fieldName,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 	}
 	return members
@@ -332,10 +353,13 @@ func cExtractDeclaration(node *sitter.Node, src []byte, definedFuncs map[string]
 			return nil // 定義がある場合はスキップ
 		}
 		sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+		start, end := nodeLines(node)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportFunction,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		}}
 	}
 
@@ -347,20 +371,26 @@ func cExtractDeclaration(node *sitter.Node, src []byte, definedFuncs map[string]
 			name := cInitDeclaratorName(child, src)
 			if name != "" {
 				sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+				start, end := nodeLines(node)
 				exports = append(exports, skeleton.Export{
 					Kind:      skeleton.ExportVariable,
 					Name:      name,
 					Signature: sig,
+					StartLine: start,
+					EndLine:   end,
 				})
 			}
 		} else if child.Type() == "identifier" {
 			// int x; のような単純宣言
 			name := content(child, src)
 			sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+			start, end := nodeLines(node)
 			exports = append(exports, skeleton.Export{
 				Kind:      skeleton.ExportVariable,
 				Name:      name,
 				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
 			})
 		}
 	}
@@ -382,10 +412,13 @@ func cExtractFuncDef(node *sitter.Node, src []byte) *skeleton.Export {
 		sig = strings.TrimSpace(content(node, src))
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 

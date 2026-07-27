@@ -131,10 +131,13 @@ func kotlinExtractTypeAlias(node *sitter.Node, src []byte) *skeleton.Export {
 	if strings.HasPrefix(sig, "typealias typealias") {
 		sig = sig[len("typealias "):]
 	}
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportType,
 		Name:      name,
 		Signature: strings.TrimSpace(content(node, src)),
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -162,10 +165,13 @@ func kotlinExtractProperty(node *sitter.Node, src []byte) *skeleton.Export {
 	if typeSig != "" {
 		sig += ": " + typeSig
 	}
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportVariable,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -176,10 +182,13 @@ func kotlinExtractFunction(node *sitter.Node, src []byte) *skeleton.Export {
 		return nil
 	}
 	sig := kotlinFuncSignature(node, src)
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -251,11 +260,14 @@ func kotlinExtractClass(node *sitter.Node, src []byte) *skeleton.Export {
 		members = append(kotlinExtractConstructorFields(pc, src), members...)
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      kind,
 		Name:      name,
 		Signature: strings.TrimSpace(sig),
 		Members:   members,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -279,11 +291,14 @@ func kotlinExtractObject(node *sitter.Node, src []byte) *skeleton.Export {
 		members = kotlinExtractClassMembers(body, src)
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportClass,
 		Name:      name,
 		Signature: "object " + name,
 		Members:   members,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -296,10 +311,13 @@ func kotlinExtractClassMembers(body *sitter.Node, src []byte) []skeleton.Member 
 		case "enum_entry":
 			name := kotlinSimpleIdentifier(child, src)
 			if name != "" {
+				start, end := nodeLines(child)
 				members = append(members, skeleton.Member{
 					Kind:      skeleton.MemberField,
 					Name:      name,
 					Signature: name,
+					StartLine: start,
+					EndLine:   end,
 				})
 			}
 		case "property_declaration":
@@ -324,10 +342,13 @@ func kotlinExtractClassMembers(body *sitter.Node, src []byte) []skeleton.Member 
 			if typeSig != "" {
 				sig += ": " + typeSig
 			}
+			start, end := nodeLines(child)
 			members = append(members, skeleton.Member{
 				Kind:      skeleton.MemberField,
 				Name:      name,
 				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
 			})
 		case "function_declaration":
 			if kotlinIsPrivate(child, src) {
@@ -338,10 +359,13 @@ func kotlinExtractClassMembers(body *sitter.Node, src []byte) []skeleton.Member 
 				continue
 			}
 			sig := kotlinFuncSignature(child, src)
+			start, end := nodeLines(child)
 			members = append(members, skeleton.Member{
 				Kind:      skeleton.MemberMethod,
 				Name:      name,
 				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
 			})
 		}
 	}
@@ -374,10 +398,13 @@ func kotlinExtractConstructorFields(pc *sitter.Node, src []byte) []skeleton.Memb
 		if typeSig != "" {
 			sig += ": " + typeSig
 		}
+		start, end := nodeLines(child)
 		members = append(members, skeleton.Member{
 			Kind:      skeleton.MemberField,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 	}
 	return members

@@ -84,6 +84,8 @@ func (e *GoExtractor) Extract(src []byte) (*skeleton.File, error) {
 				Kind:      skeleton.ExportFunction,
 				Name:      m.Name,
 				Signature: "func (" + typeName + ") " + m.Signature[len("func "):],
+				StartLine: m.StartLine,
+				EndLine:   m.EndLine,
 			})
 		}
 	}
@@ -123,10 +125,13 @@ func goExtractFunction(node *sitter.Node, src []byte) *skeleton.Export {
 	}
 
 	sig := goFuncSignature(node, src)
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -147,10 +152,13 @@ func goExtractMethod(node *sitter.Node, src []byte) (string, *skeleton.Member) {
 	}
 
 	sig := goFuncSignature(node, src)
+	start, end := nodeLines(node)
 	return typeName, &skeleton.Member{
 		Kind:      skeleton.MemberMethod,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -212,6 +220,7 @@ func goExtractTypeDecl(node *sitter.Node, src []byte) []skeleton.Export {
 			continue
 		}
 
+		start, end := nodeLines(child)
 		switch typeNode.Type() {
 		case "struct_type":
 			members := goExtractStructFields(typeNode, src)
@@ -220,6 +229,8 @@ func goExtractTypeDecl(node *sitter.Node, src []byte) []skeleton.Export {
 				Name:      name,
 				Signature: "type " + name + " struct",
 				Members:   members,
+				StartLine: start,
+				EndLine:   end,
 			})
 		case "interface_type":
 			members := goExtractInterfaceMethods(typeNode, src)
@@ -228,6 +239,8 @@ func goExtractTypeDecl(node *sitter.Node, src []byte) []skeleton.Export {
 				Name:      name,
 				Signature: "type " + name + " interface",
 				Members:   members,
+				StartLine: start,
+				EndLine:   end,
 			})
 		default:
 			// type alias / named type
@@ -236,6 +249,8 @@ func goExtractTypeDecl(node *sitter.Node, src []byte) []skeleton.Export {
 				Kind:      skeleton.ExportType,
 				Name:      name,
 				Signature: "type " + sig,
+				StartLine: start,
+				EndLine:   end,
 			})
 		}
 	}
@@ -256,10 +271,13 @@ func goExtractTypeAlias(node *sitter.Node, src []byte) *skeleton.Export {
 		return nil
 	}
 	sig := "type " + strings.TrimSpace(content(node, src))
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportType,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -279,6 +297,7 @@ func goExtractStructFields(node *sitter.Node, src []byte) []skeleton.Member {
 		if child.Type() != "field_declaration" {
 			continue
 		}
+		start, end := nodeLines(child)
 		name := goStructFieldName(child, src)
 		if name == "" {
 			// 埋め込みフィールド: field_identifier がない場合
@@ -290,6 +309,8 @@ func goExtractStructFields(node *sitter.Node, src []byte) []skeleton.Member {
 						Kind:      skeleton.MemberField,
 						Name:      typeName,
 						Signature: typeName,
+						StartLine: start,
+						EndLine:   end,
 					})
 				}
 			}
@@ -307,6 +328,8 @@ func goExtractStructFields(node *sitter.Node, src []byte) []skeleton.Member {
 			Kind:      skeleton.MemberField,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 	}
 	return members
@@ -323,26 +346,35 @@ func goExtractInterfaceMethods(node *sitter.Node, src []byte) []skeleton.Member 
 				continue
 			}
 			sig := strings.TrimSpace(content(child, src))
+			start, end := nodeLines(child)
 			members = append(members, skeleton.Member{
 				Kind:      skeleton.MemberMethod,
 				Name:      name,
 				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
 			})
 		case "type_identifier", "qualified_type":
 			// 埋め込みインターフェース
 			typeName := content(child, src)
+			start, end := nodeLines(child)
 			members = append(members, skeleton.Member{
 				Kind:      skeleton.MemberField,
 				Name:      typeName,
 				Signature: typeName,
+				StartLine: start,
+				EndLine:   end,
 			})
 		case "type_elem":
 			// 埋め込みインターフェース (type_elem > qualified_type|type_identifier)
 			typeName := strings.TrimSpace(content(child, src))
+			start, end := nodeLines(child)
 			members = append(members, skeleton.Member{
 				Kind:      skeleton.MemberField,
 				Name:      typeName,
 				Signature: typeName,
+				StartLine: start,
+				EndLine:   end,
 			})
 		}
 	}
@@ -365,10 +397,13 @@ func goExtractVarDecl(node *sitter.Node, src []byte) []skeleton.Export {
 		if typeName != "" {
 			sig += " " + typeName
 		}
+		start, end := nodeLines(child)
 		exports = append(exports, skeleton.Export{
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 	}
 	return exports
@@ -390,10 +425,13 @@ func goExtractConstDecl(node *sitter.Node, src []byte) []skeleton.Export {
 		if typeName != "" {
 			sig += " " + typeName
 		}
+		start, end := nodeLines(child)
 		exports = append(exports, skeleton.Export{
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 	}
 	return exports

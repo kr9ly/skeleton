@@ -99,13 +99,27 @@ func writeFileBody(b *strings.Builder, f *skeleton.File) {
 	for _, exp := range f.Exports {
 		b.WriteString("export ")
 		b.WriteString(exp.Signature)
+		writeLineRange(b, exp.StartLine, exp.EndLine)
 		b.WriteString("\n")
 		for _, m := range exp.Members {
 			b.WriteString("  ")
 			b.WriteString(m.Kind.String())
 			b.WriteString(" ")
 			b.WriteString(m.Signature)
+			writeLineRange(b, m.StartLine, m.EndLine)
 			b.WriteString("\n")
 		}
+	}
+}
+
+// writeLineRange は " :12-45" 形式の行範囲を書く。1行なら " :12"、情報なし（0）なら何も書かない。
+func writeLineRange(b *strings.Builder, start, end int) {
+	if start == 0 {
+		return
+	}
+	if end > start {
+		fmt.Fprintf(b, " :%d-%d", start, end)
+	} else {
+		fmt.Fprintf(b, " :%d", start)
 	}
 }

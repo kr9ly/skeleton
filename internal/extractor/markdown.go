@@ -42,13 +42,41 @@ func (e *MarkdownExtractor) Extract(src []byte) (*skeleton.File, error) {
 }
 
 func mdWalkHeadings(node *sitter.Node, src []byte, file *skeleton.File) {
-	if node.Type() == "atx_heading" {
-		sig, name := mdHeadingText(node, src)
+	// tree-sitter-markdown wraps each heading (and the content/subsections
+	// that follow it) in a "section" node whose range covers the whole
+	// section, not just the heading line. Prefer that range when present
+	// so StartLine/EndLine reflect the section's full extent; fall back to
+	// the atx_heading node itself (single line, e.g. a heading with no
+	// wrapping section) otherwise. The heading child of a handled section
+	// is skipped during recursion to avoid emitting it twice.
+	if node.Type() == "section" && node.NamedChildCount() > 0 && node.NamedChild(0).Type() == "atx_heading" {
+		heading := node.NamedChild(0)
+		sig, name := mdHeadingText(heading, src)
 		if name != "" {
+			start, end := nodeLines(node)
 			file.Exports = append(file.Exports, skeleton.Export{
 				Kind:      skeleton.ExportSection,
 				Name:      name,
 				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
+			})
+		}
+		for i := 1; i < int(node.NamedChildCount()); i++ {
+			mdWalkHeadings(node.NamedChild(i), src, file)
+		}
+		return
+	}
+	if node.Type() == "atx_heading" {
+		sig, name := mdHeadingText(node, src)
+		if name != "" {
+			start, end := nodeLines(node)
+			file.Exports = append(file.Exports, skeleton.Export{
+				Kind:      skeleton.ExportSection,
+				Name:      name,
+				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
 			})
 		}
 	}

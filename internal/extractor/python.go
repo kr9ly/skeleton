@@ -113,10 +113,13 @@ func pyExtractFunction(node *sitter.Node, src []byte, decorator string) *skeleto
 		sig = decorator + "\n" + sig
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -147,10 +150,13 @@ func pyExtractClass(node *sitter.Node, src []byte, decorator string) *skeleton.E
 		sig = decorator + "\n" + sig
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportClass,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -170,14 +176,21 @@ func pyExtractDecorated(node *sitter.Node, src []byte) *skeleton.Export {
 		return nil
 	}
 
+	var exp *skeleton.Export
 	switch defNode.Type() {
 	case "function_definition":
-		return pyExtractFunction(defNode, src, decoStr)
+		exp = pyExtractFunction(defNode, src, decoStr)
 	case "class_definition":
-		return pyExtractClass(defNode, src, decoStr)
+		exp = pyExtractClass(defNode, src, decoStr)
 	default:
 		return nil
 	}
+	if exp != nil {
+		// デコレーター行を含めた範囲にする
+		start, _ := nodeLines(node)
+		exp.StartLine = start
+	}
+	return exp
 }
 
 func pyExtractAssignment(node *sitter.Node, src []byte) *skeleton.Export {
@@ -204,10 +217,13 @@ func pyExtractAssignment(node *sitter.Node, src []byte) *skeleton.Export {
 	if name == "__all__" {
 		right := assign.ChildByFieldName("right")
 		if right != nil {
+			start, end := nodeLines(node)
 			return &skeleton.Export{
 				Kind:      skeleton.ExportVariable,
 				Name:      name,
 				Signature: "__all__ = " + content(right, src),
+				StartLine: start,
+				EndLine:   end,
 			}
 		}
 		return nil
@@ -216,19 +232,25 @@ func pyExtractAssignment(node *sitter.Node, src []byte) *skeleton.Export {
 	// 型注釈があればそれを含める
 	typeNode := assign.ChildByFieldName("type")
 	if typeNode != nil {
+		start, end := nodeLines(node)
 		return &skeleton.Export{
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: name + ": " + content(typeNode, src),
+			StartLine: start,
+			EndLine:   end,
 		}
 	}
 
 	// 大文字始まりの定数のみ（小文字の普通の変数は除外）
 	if name[0] >= 'A' && name[0] <= 'Z' {
+		start, end := nodeLines(node)
 		return &skeleton.Export{
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: name,
+			StartLine: start,
+			EndLine:   end,
 		}
 	}
 
@@ -240,9 +262,12 @@ func pyExtractTypeAlias(node *sitter.Node, src []byte) *skeleton.Export {
 	if name == "" || strings.HasPrefix(name, "_") {
 		return nil
 	}
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportType,
 		Name:      name,
 		Signature: strings.TrimSpace(content(node, src)),
+		StartLine: start,
+		EndLine:   end,
 	}
 }

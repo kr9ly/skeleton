@@ -164,10 +164,13 @@ func cudaExtractFuncDef(node *sitter.Node, src []byte) *skeleton.Export {
 		sig = strings.TrimSpace(content(node, src))
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -179,10 +182,13 @@ func cudaExtractDeclaration(node *sitter.Node, src []byte, definedFuncs map[stri
 			return nil
 		}
 		sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+		start, end := nodeLines(node)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportFunction,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		}}
 	}
 
@@ -217,10 +223,13 @@ func cudaExtractDeclaration(node *sitter.Node, src []byte, definedFuncs map[stri
 		}
 		if name != "" {
 			sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+			start, end := nodeLines(node)
 			return []skeleton.Export{{
 				Kind:      skeleton.ExportVariable,
 				Name:      name,
 				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
 			}}
 		}
 		return nil

@@ -126,11 +126,14 @@ func glslExtractDeclaration(node *sitter.Node, src []byte) []skeleton.Export {
 		if name != "" {
 			members := cExtractStructFields(fdl, src)
 			sig := qualifier + " " + name
+			start, end := nodeLines(node)
 			exports = append(exports, skeleton.Export{
 				Kind:      skeleton.ExportClass,
 				Name:      name,
 				Signature: strings.TrimSpace(sig),
 				Members:   members,
+				StartLine: start,
+				EndLine:   end,
 			})
 			return exports
 		}
@@ -149,10 +152,13 @@ func glslExtractDeclaration(node *sitter.Node, src []byte) []skeleton.Export {
 	if name != "" {
 		// ERROR 部分を除いたシグネチャを生成
 		sig := strings.TrimSuffix(strings.TrimSpace(string(src[startByte:node.EndByte()])), ";")
+		start, end := nodeLines(node)
 		exports = append(exports, skeleton.Export{
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 		return exports
 	}
@@ -256,9 +262,12 @@ func glslExtractFuncDef(node *sitter.Node, src []byte) *skeleton.Export {
 		sig = strings.TrimSpace(content(node, src))
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }

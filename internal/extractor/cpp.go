@@ -222,11 +222,14 @@ func cppExtractClass(node *sitter.Node, src []byte, prefix string) *skeleton.Exp
 	}
 
 	fullName := prefix + className
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportClass,
 		Name:      fullName,
 		Signature: "class " + fullName,
 		Members:   members,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -234,6 +237,7 @@ func cppExtractClass(node *sitter.Node, src []byte, prefix string) *skeleton.Exp
 // コンストラクタ・デストラクタ宣言がここに来る。
 func cppExtractMemberDecl(node *sitter.Node, src []byte, className string) *skeleton.Member {
 	sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+	start, end := nodeLines(node)
 
 	// function_declarator を持つ → メソッド宣言
 	if fd := cFindFuncDeclarator(node); fd != nil {
@@ -245,6 +249,8 @@ func cppExtractMemberDecl(node *sitter.Node, src []byte, className string) *skel
 			Kind:      skeleton.MemberMethod,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		}
 	}
 
@@ -254,6 +260,8 @@ func cppExtractMemberDecl(node *sitter.Node, src []byte, className string) *skel
 			Kind:      skeleton.MemberMethod,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		}
 	}
 
@@ -276,6 +284,8 @@ func cppExtractMemberDecl(node *sitter.Node, src []byte, className string) *skel
 		Kind:      skeleton.MemberField,
 		Name:      fieldName,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -320,6 +330,7 @@ func cppFindDestructorName(node *sitter.Node, src []byte) string {
 // cppExtractMemberField は field_declaration ノードからメンバーを抽出する。
 func cppExtractMemberField(node *sitter.Node, src []byte) *skeleton.Member {
 	sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+	start, end := nodeLines(node)
 
 	// function_declarator を持つ → メソッド宣言（field_declaration に来ることもある）
 	if fd := cFindFuncDeclarator(node); fd != nil {
@@ -331,6 +342,8 @@ func cppExtractMemberField(node *sitter.Node, src []byte) *skeleton.Member {
 			Kind:      skeleton.MemberMethod,
 			Name:      name,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		}
 	}
 
@@ -343,6 +356,8 @@ func cppExtractMemberField(node *sitter.Node, src []byte) *skeleton.Member {
 		Kind:      skeleton.MemberField,
 		Name:      fieldName,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -365,10 +380,13 @@ func cppExtractMemberFuncDef(node *sitter.Node, src []byte) *skeleton.Member {
 		sig = strings.TrimSpace(content(node, src))
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Member{
 		Kind:      skeleton.MemberMethod,
 		Name:      name,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -388,10 +406,13 @@ func cppExtractAlias(node *sitter.Node, src []byte, prefix string) *skeleton.Exp
 
 	sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
 	fullName := prefix + name
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportType,
 		Name:      fullName,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -428,11 +449,14 @@ func cppExtractEnum(node *sitter.Node, src []byte, prefix string) *skeleton.Expo
 	}
 
 	fullName := prefix + name
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportType,
 		Name:      fullName,
 		Signature: keyword + " " + fullName,
 		Members:   members,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -470,10 +494,13 @@ func cppExtractTemplate(node *sitter.Node, src []byte, prefix string, definedFun
 			sig = strings.TrimSpace(content(inner, src))
 		}
 		fullName := prefix + name
+		start, end := nodeLines(node)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportFunction,
 			Name:      fullName,
 			Signature: "template" + templateParams + " " + sig,
+			StartLine: start,
+			EndLine:   end,
 		}}
 
 	case "declaration":
@@ -481,8 +508,11 @@ func cppExtractTemplate(node *sitter.Node, src []byte, prefix string, definedFun
 			return nil
 		}
 		exports := cppExtractDeclaration(inner, src, prefix, definedFuncs)
+		start, end := nodeLines(node)
 		for i := range exports {
 			exports[i].Signature = "template" + templateParams + " " + exports[i].Signature
+			exports[i].StartLine = start
+			exports[i].EndLine = end
 		}
 		return exports
 
@@ -490,6 +520,9 @@ func cppExtractTemplate(node *sitter.Node, src []byte, prefix string, definedFun
 		exp := cppExtractClass(inner, src, prefix)
 		if exp != nil {
 			exp.Signature = "template" + templateParams + " " + exp.Signature
+			start, end := nodeLines(node)
+			exp.StartLine = start
+			exp.EndLine = end
 		}
 		if exp != nil {
 			return []skeleton.Export{*exp}
@@ -521,10 +554,13 @@ func cppExtractDeclaration(node *sitter.Node, src []byte, prefix string, defined
 			return nil
 		}
 		sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+		start, end := nodeLines(node)
 		return []skeleton.Export{{
 			Kind:      skeleton.ExportFunction,
 			Name:      fullName,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		}}
 	}
 
@@ -537,20 +573,26 @@ func cppExtractDeclaration(node *sitter.Node, src []byte, prefix string, defined
 			if name != "" {
 				fullName := prefix + name
 				sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+				start, end := nodeLines(node)
 				exports = append(exports, skeleton.Export{
 					Kind:      skeleton.ExportVariable,
 					Name:      fullName,
 					Signature: sig,
+					StartLine: start,
+					EndLine:   end,
 				})
 			}
 		} else if child.Type() == "identifier" {
 			name := content(child, src)
 			fullName := prefix + name
 			sig := strings.TrimSuffix(strings.TrimSpace(content(node, src)), ";")
+			start, end := nodeLines(node)
 			exports = append(exports, skeleton.Export{
 				Kind:      skeleton.ExportVariable,
 				Name:      fullName,
 				Signature: sig,
+				StartLine: start,
+				EndLine:   end,
 			})
 		}
 	}
@@ -573,10 +615,13 @@ func cppExtractFuncDef(node *sitter.Node, src []byte, prefix string) *skeleton.E
 	}
 
 	fullName := prefix + name
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      skeleton.ExportFunction,
 		Name:      fullName,
 		Signature: sig,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 

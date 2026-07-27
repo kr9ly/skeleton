@@ -63,6 +63,9 @@ func zigProcessDecl(node *sitter.Node, src []byte, isPub bool, file *skeleton.Fi
 	fnProto := zigFindNamedChild(node, "FnProto")
 	if fnProto != nil && isPub {
 		if exp := zigExtractFnProto(fnProto, src); exp != nil {
+			start, end := nodeLines(node)
+			exp.StartLine = start
+			exp.EndLine = end
 			file.Exports = append(file.Exports, *exp)
 		}
 	}
@@ -76,6 +79,7 @@ func zigProcessVarDecl(node *sitter.Node, src []byte, isPub bool, file *skeleton
 
 	isVar := zigIsVar(node)
 	hasTypeAnnotation := zigHasTypeAnnotation(node)
+	startLine, endLine := nodeLines(node)
 
 	// 値の式ノードを取得
 	valueText := zigValueText(node, src)
@@ -112,6 +116,8 @@ func zigProcessVarDecl(node *sitter.Node, src []byte, isPub bool, file *skeleton
 			Name:      name,
 			Signature: kindName + " " + name,
 			Members:   members,
+			StartLine: startLine,
+			EndLine:   endLine,
 		})
 		return
 	}
@@ -122,6 +128,8 @@ func zigProcessVarDecl(node *sitter.Node, src []byte, isPub bool, file *skeleton
 			Kind:      skeleton.ExportType,
 			Name:      name,
 			Signature: "error " + name,
+			StartLine: startLine,
+			EndLine:   endLine,
 		})
 		return
 	}
@@ -136,6 +144,8 @@ func zigProcessVarDecl(node *sitter.Node, src []byte, isPub bool, file *skeleton
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: sig,
+			StartLine: startLine,
+			EndLine:   endLine,
 		})
 		return
 	}
@@ -148,6 +158,8 @@ func zigProcessVarDecl(node *sitter.Node, src []byte, isPub bool, file *skeleton
 			Kind:      skeleton.ExportVariable,
 			Name:      name,
 			Signature: sig,
+			StartLine: startLine,
+			EndLine:   endLine,
 		})
 		return
 	}
@@ -158,6 +170,8 @@ func zigProcessVarDecl(node *sitter.Node, src []byte, isPub bool, file *skeleton
 		Kind:      skeleton.ExportType,
 		Name:      name,
 		Signature: sig,
+		StartLine: startLine,
+		EndLine:   endLine,
 	})
 }
 
@@ -210,10 +224,13 @@ func zigExtractContainerMembers(node *sitter.Node, src []byte) []skeleton.Member
 				name = sig
 			}
 			if name != "" {
+				start, end := nodeLines(child)
 				members = append(members, skeleton.Member{
 					Kind:      skeleton.MemberField,
 					Name:      name,
 					Signature: sig,
+					StartLine: start,
+					EndLine:   end,
 				})
 			}
 			isPub = false
@@ -236,10 +253,13 @@ func zigExtractContainerMembers(node *sitter.Node, src []byte) []skeleton.Member
 				}
 				if name != "" {
 					sig := "fn " + strings.TrimSpace(content(fnProto, src))[3:]
+					start, end := nodeLines(child)
 					members = append(members, skeleton.Member{
 						Kind:      skeleton.MemberMethod,
 						Name:      name,
 						Signature: sig,
+						StartLine: start,
+						EndLine:   end,
 					})
 				}
 			} else {
@@ -247,10 +267,13 @@ func zigExtractContainerMembers(node *sitter.Node, src []byte) []skeleton.Member
 				if varDecl != nil {
 					name := zigVarDeclName(varDecl, src)
 					if name != "" {
+						start, end := nodeLines(child)
 						members = append(members, skeleton.Member{
 							Kind:      skeleton.MemberField,
 							Name:      name,
 							Signature: "const " + name,
+							StartLine: start,
+							EndLine:   end,
 						})
 					}
 				}

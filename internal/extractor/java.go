@@ -118,11 +118,14 @@ func javaExtractTypeDecl(node *sitter.Node, src []byte) *skeleton.Export {
 		members = javaExtractMembers(body, src)
 	}
 
+	start, end := nodeLines(node)
 	return &skeleton.Export{
 		Kind:      kind,
 		Name:      content(name, src),
 		Signature: sig,
 		Members:   members,
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 
@@ -135,10 +138,13 @@ func javaExtractMembers(body *sitter.Node, src []byte) []skeleton.Member {
 		case "enum_constant":
 			if name := child.ChildByFieldName("name"); name != nil {
 				n := content(name, src)
+				start, end := nodeLines(child)
 				members = append(members, skeleton.Member{
 					Kind:      skeleton.MemberField,
 					Name:      n,
 					Signature: n,
+					StartLine: start,
+					EndLine:   end,
 				})
 			}
 		case "enum_body_declarations":
@@ -151,10 +157,13 @@ func javaExtractMembers(body *sitter.Node, src []byte) []skeleton.Member {
 		case "annotation_type_element_declaration":
 			if name := child.ChildByFieldName("name"); name != nil {
 				sig := strings.TrimSuffix(strings.TrimSpace(content(child, src)), ";")
+				start, end := nodeLines(child)
 				members = append(members, skeleton.Member{
 					Kind:      skeleton.MemberMethod,
 					Name:      content(name, src),
 					Signature: sig,
+					StartLine: start,
+					EndLine:   end,
 				})
 			}
 		case "method_declaration", "constructor_declaration":
@@ -195,10 +204,13 @@ func javaExtractFields(node *sitter.Node, src []byte) []skeleton.Member {
 		}
 		n := content(name, src)
 		sig := strings.TrimSpace(prefix + typeSig + " " + n)
+		start, end := nodeLines(child)
 		members = append(members, skeleton.Member{
 			Kind:      skeleton.MemberField,
 			Name:      n,
 			Signature: sig,
+			StartLine: start,
+			EndLine:   end,
 		})
 	}
 	return members
@@ -216,10 +228,13 @@ func javaExtractMethod(node *sitter.Node, src []byte) *skeleton.Member {
 	}
 	sig = strings.TrimSuffix(sig, ";")
 	sig = javaStripAnnotations(sig)
+	start, end := nodeLines(node)
 	return &skeleton.Member{
 		Kind:      skeleton.MemberMethod,
 		Name:      content(name, src),
 		Signature: strings.TrimSpace(sig),
+		StartLine: start,
+		EndLine:   end,
 	}
 }
 

@@ -23,12 +23,16 @@ type Export struct {
 	Name      string
 	Signature string   // シグネチャ全体（"function verifyToken(token: string): Promise<JwtPayload>" 等）
 	Members   []Member // クラス・インターフェースのメンバー（詳細モード用）
+	StartLine int      // 定義の開始行（1-based）。0 は情報なし
+	EndLine   int      // 定義の終了行（1-based、本体含む）
 }
 
 type Member struct {
 	Kind      MemberKind
 	Name      string
 	Signature string
+	StartLine int // 定義の開始行（1-based）。0 は情報なし
+	EndLine   int // 定義の終了行（1-based、本体含む）
 }
 
 type MemberKind int
